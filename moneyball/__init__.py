@@ -1,3 +1,3 @@
 """The main module for moneyball."""
 
-__VERSION__ = "0.0.2"
+__VERSION__ = "0.0.3"

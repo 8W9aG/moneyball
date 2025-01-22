@@ -16,8 +16,8 @@ from dateutil.relativedelta import relativedelta
 from sklearn.metrics import precision_score  # type: ignore
 from sklearn.metrics import accuracy_score, recall_score
 from sportsball.data.field_type import FieldType  # type: ignore
-from sportsball.data.game_model import (GAME_DT_COLUMN,  # type: ignore
-                                        GAME_WEEK_COLUMN)
+from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
+from sportsball.data.game_model import GAME_WEEK_COLUMN
 from sportsball.data.league_model import DELIMITER  # type: ignore
 
 from .features import CombinedFeature

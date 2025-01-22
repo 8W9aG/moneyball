@@ -12,6 +12,7 @@ from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.league_model import DELIMITER  # type: ignore
 
+from ...cache import MEMORY
 from .columns import (find_player_count, find_team_count, player_column_prefix,
                       player_identifier_column, team_column_prefix,
                       team_identifier_column, team_points_column)
@@ -390,6 +391,7 @@ class SkillFeature(Feature):
         if None in self._year_slices:
             df = _create_all_features(df, team_count, player_count)
 
+        @MEMORY.cache
         def calculate_skills(group: pd.DataFrame) -> pd.DataFrame:
             nonlocal df
             nonlocal team_count
