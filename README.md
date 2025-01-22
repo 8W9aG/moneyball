@@ -1,2 +1,79 @@
 # moneyball
+
+<a href="https://pypi.org/project/moneyball/">
+    <img alt="PyPi" src="https://img.shields.io/pypi/v/moneyball">
+</a>
+
 A library for determining what bets to make.
+
+<p align="center">
+    <img src="moneyball.png" alt="moneyball" width="200"/>
+</p>
+
+## Dependencies :globe_with_meridians:
+
+Python 3.11.6:
+
+- [pandas](https://pandas.pydata.org/)
+- [empyrical](https://github.com/quantopian/empyrical)
+- [numpy](https://numpy.org/)
+- [optuna](https://optuna.readthedocs.io/en/stable/)
+- [pytz](https://pythonhosted.org/pytz/)
+- [python-dateutil](https://github.com/dateutil/dateutil)
+- [scikit-learn](https://scikit-learn.org/)
+- [sportsball](https://github.com/8W9aG/sportsball)
+- [feature-engine](https://feature-engine.trainindata.com/en/latest/)
+- [tqdm](https://github.com/tqdm/tqdm)
+- [openskill](https://openskill.me/en/latest/index.html)
+- [pandarallel](https://nalepae.github.io/pandarallel/)
+- [pytorch](https://pytorch.org/)
+- [catboost](https://catboost.ai/)
+- [scipy](https://scipy.org/)
+- [joblib](https://joblib.readthedocs.io/en/stable/)
+- [venn-abers](https://github.com/ip200/venn-abers)
+- [matplotlib](https://matplotlib.org/)
+- [pyfolio-reloaded](https://github.com/stefan-jansen/pyfolio-reloaded)
+- [fullmonte](https://github.com/8W9aG/fullmonte)
+- [skfolio](https://skfolio.org/)
+
+## Raison D'être :thought_balloon:
+
+`moneyball` was split out of the library [sportsball](https://github.com/8W9aG/sportsball) in order to iterate separately on the quantitative strategies and the data powering them. It aims to be an automated way to come up with an optimal betting strategy when supplied with data in a `sportsball` format.
+
+## Architecture :triangular_ruler:
+
+`moneyball` is an object orientated library. The entities are organised like so:
+
+* **Portfolio**: A collection of strategies.
+    * **Strategy**: A method to determine what specific bet to make according.
+        * **Features**: The features extracted from the data.
+        * **Reducers**: The features removed from the data.
+        * **Trainers**: The type of models used for training on the data.
+        * **Weights**: Weight strategies to apply to the data.
+
+## Installation :inbox_tray:
+
+This is a python package hosted on pypi, so to install simply run the following command:
+
+`pip install moneyball`
+
+## Usage example :eyes:
+
+To pull a dataframe containing all the information for a particular league, the following example can be used:
+
+```python
+from moneyball import moneyball as mnb
+
+df = ... # Fetch the dataframe from sportsball
+
+moneyball = mnb.Moneyball()
+strategy = moneyball.create_strategy(df, "test_strategy")
+strategy.fit()
+portfolio = ball.create_portfolio([strategy], "test_portfolio")
+returns = portfolio.fit()
+portfolio.render(returns)
+```
+
+## License :memo:
+
+The project is available under the [MIT License](LICENSE).

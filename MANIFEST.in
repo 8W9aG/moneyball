@@ -1,0 +1,3 @@
+include requirements.txt
+recursive-include moneyball *.py
+recursive-include moneyball *.csv
