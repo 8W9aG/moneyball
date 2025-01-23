@@ -7,7 +7,7 @@ from .feature import Feature
 
 
 class DatetimeFeature(Feature):
-    """The datatime feature extractor class."""
+    """The datetime feature extractor class."""
 
     # pylint: disable=too-few-public-methods
 

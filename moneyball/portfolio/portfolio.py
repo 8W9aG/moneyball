@@ -12,8 +12,8 @@ import pyfolio as pf  # type: ignore
 from fullmonte import plot, simulate  # type: ignore
 from skfolio import RiskMeasure  # type: ignore
 from skfolio.optimization import MeanRisk, ObjectiveFunction  # type: ignore
-from sportsball.data.game_model import (GAME_DT_COLUMN,  # type: ignore
-                                        LEAGUE_COLUMN)
+from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
+from sportsball.data.game_model import LEAGUE_COLUMN
 
 from ..strategy import Strategy
 from ..strategy.features.columns import find_team_count, team_name_column
@@ -121,7 +121,7 @@ class Portfolio:
             ).cumprod()
             plot(simulate(pd.Series(ret)))
             plt.savefig(os.path.join(self._name, f"{col}_monte_carlo.png"), dpi=300)
-            log_series = pd.Series(data=np.log(ret), index=series.index[1:])
+            log_series = pd.Series(data=np.log(ret)[1:], index=series.index)
             log_series.plot()
             plt.savefig(os.path.join(self._name, f"{col}_log_returns.png"), dpi=300)
 

@@ -11,7 +11,7 @@ class TestPortfolio(unittest.TestCase):
 
     def setUp(self):
         self._folder = "test_pytest_portfolio"
-        self._portfolio = Portfolio([], self._folder)
+        self._portfolio = Portfolio(self._folder)
 
     def tearDown(self):
         shutil.rmtree(self._folder)
