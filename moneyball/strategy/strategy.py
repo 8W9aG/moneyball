@@ -1,6 +1,8 @@
 """The strategy class."""
 
+# pylint: disable=too-many-statements
 import datetime
+import multiprocessing
 import os
 import pickle
 import statistics
@@ -13,6 +15,7 @@ import pandas as pd
 import pytz
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
+from joblib import parallel_backend  # type: ignore
 from sklearn.metrics import precision_score  # type: ignore
 from sklearn.metrics import accuracy_score, recall_score
 from sportsball.data.field_type import FieldType  # type: ignore
@@ -365,7 +368,13 @@ class Strategy:
                     return 0.0
                 return empyrical.calmar_ratio(ret)  # type: ignore
 
-            study.optimize(objective, n_trials=100, show_progress_bar=True)
+            with parallel_backend("multiprocessing"):
+                study.optimize(
+                    objective,
+                    n_trials=100,
+                    show_progress_bar=True,
+                    n_jobs=multiprocessing.cpu_count(),
+                )
 
             returns = calculate_returns(
                 study.best_trial.suggest_float("kelly_ratio", 0.0, 2.0)
