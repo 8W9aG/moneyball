@@ -30,6 +30,8 @@ from .trainers import (FEATURES_USR_ATTR, HASH_USR_ATTR, CatboostTrainer,
 from .trainers.output_column import OUTPUT_COLUMN, OUTPUT_PROB_COLUMN_PREFIX
 
 _SAMPLER_FILENAME = "sampler.pkl"
+_KELLY_SAMPLER_FILENAME = "kelly_sampler.pkl"
+_DF_FILENAME = "df.parquet.gzip"
 
 
 def _next_week_dt(
@@ -63,12 +65,12 @@ def _print_metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame) -> float:
 class Strategy:
     """The strategy class."""
 
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,too-many-instance-attributes
 
     _returns: pd.Series | None
 
-    def __init__(self, df: pd.DataFrame, name: str) -> None:
-        self._df = df
+    def __init__(self, name: str) -> None:
+        self._df = None
         self._name = name
         self._features = CombinedFeature()
         self._reducers = CombinedReducer(
@@ -78,6 +80,13 @@ class Strategy:
             ]
         )
         os.makedirs(name, exist_ok=True)
+
+        # Load dataframe previously used.
+        df_file = os.path.join(name, _DF_FILENAME)
+        if os.path.exists(df_file):
+            self._df = pd.read_parquet(df_file)
+
+        # Load trainer study
         storage_name = f"sqlite:///{name}/study.db"
         sampler_file = os.path.join(name, _SAMPLER_FILENAME)
         restored_sampler = None
@@ -91,30 +100,71 @@ class Strategy:
             sampler=restored_sampler,
             direction=optuna.study.StudyDirection.MAXIMIZE,
         )
+
+        # Load kelly study
+        kelly_storage_name = f"sqlite:///{name}/kelly_study.db"
+        kelly_sampler_file = os.path.join(name, _KELLY_SAMPLER_FILENAME)
+        kelly_restored_sampler = None
+        if os.path.exists(kelly_sampler_file):
+            with open(kelly_sampler_file, "rb") as handle:
+                kelly_restored_sampler = pickle.load(handle)
+        self._kelly_study = optuna.create_study(
+            study_name=f"kelly_{name}",
+            storage=kelly_storage_name,
+            load_if_exists=True,
+            sampler=kelly_restored_sampler,
+            direction=optuna.study.StudyDirection.MAXIMIZE,
+        )
+
         self._returns = None
+
+    @property
+    def df(self) -> pd.DataFrame | None:
+        """Fetch the dataframe currently being operated on."""
+        return self._df
+
+    @df.setter
+    def df(self, df: pd.DataFrame) -> None:
+        """Set the dataframe."""
+        self._df = df
+        df.to_parquet(os.path.join(self._name, _DF_FILENAME), compression="gzip")
+
+    @property
+    def name(self) -> str:
+        """Fetch the name of the strategy."""
+        return self._name
+
+    @property
+    def kelly_ratio(self) -> float:
+        """Find the best kelly ratio for this strategy."""
+        return self._kelly_study.best_trial.suggest_float("kelly_ratio", 0.0, 2.0)
 
     def fit(self, start_dt: datetime.datetime | None = None):
         """Fits the strategy to the dataset by walking forward."""
         # pylint: disable=too-many-statements
 
+        df = self.df
+        if df is None:
+            raise ValueError("df is null.")
+
         if start_dt is None:
             start_dt = max(
-                self._df[[GAME_DT_COLUMN, x]]
-                .dropna()[GAME_DT_COLUMN]
-                .iloc[0]
-                .to_pydatetime()
-                for x in self._df.attrs[str(FieldType.ODDS)]
+                df[[GAME_DT_COLUMN, x]].dropna()[GAME_DT_COLUMN].iloc[0].to_pydatetime()
+                for x in df.attrs[str(FieldType.ODDS)]
             )
             start_dt = max(
                 start_dt,  # type: ignore
                 pytz.utc.localize(datetime.datetime.now() - relativedelta(years=5)),
             )
 
-        df = self._df.copy()
+        df = df.copy()
         df = df[
             df[GAME_DT_COLUMN]
             < pytz.utc.localize(datetime.datetime.now() - datetime.timedelta(days=1.0))
         ]
+        if df is None:
+            raise ValueError("df is null.")
+
         training_cols = set(df.attrs[str(FieldType.POINTS)])
         x = self._features.process(df)
         x = self._reducers.process(x)
@@ -225,21 +275,28 @@ class Strategy:
         """Predict the results from walk-forward."""
         dt_column = DELIMITER.join([GAME_DT_COLUMN])
 
+        df = self.df
+        if df is None:
+            raise ValueError("df is null.")
+
         if start_dt is None:
             start_dt = max(
-                self._df[[dt_column, x]].dropna()[dt_column].iloc[0].to_pydatetime()
-                for x in self._df.attrs[str(FieldType.ODDS)]
+                df[[dt_column, x]].dropna()[dt_column].iloc[0].to_pydatetime()
+                for x in df.attrs[str(FieldType.ODDS)]
             )
             start_dt = max(
                 start_dt,  # type: ignore
                 pytz.utc.localize(datetime.datetime.now() - relativedelta(years=5)),
             )
 
-        df = self._df.copy()
+        df = df.copy()
         df = df[
             df[dt_column]
             < pytz.utc.localize(datetime.datetime.now() - datetime.timedelta(days=1.0))
         ]
+        if df is None:
+            raise ValueError("df is null.")
+
         x = self._features.process(df)
 
         for folder_name in sorted(os.listdir(self._name)):
@@ -252,8 +309,8 @@ class Strategy:
                 folder,
                 CatboostTrainer(
                     folder,
-                    self._df.attrs[str(FieldType.CATEGORICAL)],
-                    self._df.attrs[str(FieldType.TEXT)],
+                    df.attrs[str(FieldType.CATEGORICAL)],
+                    df.attrs[str(FieldType.TEXT)],
                 ),
             )
             trainer.load()
@@ -279,11 +336,15 @@ class Strategy:
 
     def returns(self) -> pd.Series:
         """Render the returns of the strategy."""
+        main_df = self.df
+        if main_df is None:
+            raise ValueError("main_df is null.")
+
         returns = self._returns
         if returns is None:
             df = self.predict()
             dt_column = DELIMITER.join([GAME_DT_COLUMN])
-            points_cols = self._df.attrs[str(FieldType.POINTS)]
+            points_cols = main_df.attrs[str(FieldType.POINTS)]
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
                 index = []
@@ -296,7 +357,7 @@ class Strategy:
                     fs = []
                     for _, row in group.iterrows():
                         row_df = row.to_frame().T
-                        odds_df = row_df[self._df.attrs[str(FieldType.ODDS)]]
+                        odds_df = row_df[main_df.attrs[str(FieldType.ODDS)]]
                         row_df = row_df[
                             [
                                 x
@@ -310,9 +371,7 @@ class Strategy:
                         team_idx = np.argmax(arr)
                         prob = arr[team_idx]
                         odds = list(
-                            odds_df[
-                                self._df.attrs[str(FieldType.ODDS)][team_idx]
-                            ].values
+                            odds_df[main_df.attrs[str(FieldType.ODDS)][team_idx]].values
                         )[0]
                         bet_prob = 1.0 / odds
                         f = max(prob - ((1.0 - prob) / bet_prob), 0.0) * kelly_ratio
@@ -329,7 +388,7 @@ class Strategy:
                     for _, row in group.iterrows():
                         row_df = row.to_frame().T
                         points_df = row_df[points_cols]
-                        odds_df = row_df[self._df.attrs[str(FieldType.ODDS)]]
+                        odds_df = row_df[main_df.attrs[str(FieldType.ODDS)]]
                         row_df = row_df[
                             [
                                 x
@@ -343,9 +402,7 @@ class Strategy:
                         team_idx = np.argmax(arr)
                         win_team_idx = np.argmax(points_df.to_numpy().flatten())
                         odds = list(
-                            odds_df[
-                                self._df.attrs[str(FieldType.ODDS)][team_idx]
-                            ].values
+                            odds_df[main_df.attrs[str(FieldType.ODDS)][team_idx]].values
                         )[0]
                         if team_idx == win_team_idx:
                             pl += odds * fs[bet_idx]
@@ -357,11 +414,6 @@ class Strategy:
 
                 return pd.Series(index=index, data=data, name=self._name)
 
-            study = optuna.create_study(
-                study_name="kelly",
-                direction=optuna.study.StudyDirection.MAXIMIZE,
-            )
-
             def objective(trial: optuna.Trial) -> float:
                 ret = calculate_returns(trial.suggest_float("kelly_ratio", 0.0, 2.0))
                 if abs(empyrical.max_drawdown(ret)) >= 1.0:
@@ -369,16 +421,14 @@ class Strategy:
                 return empyrical.calmar_ratio(ret)  # type: ignore
 
             with parallel_backend("multiprocessing"):
-                study.optimize(
+                self._kelly_study.optimize(
                     objective,
                     n_trials=100,
                     show_progress_bar=True,
                     n_jobs=multiprocessing.cpu_count(),
                 )
 
-            returns = calculate_returns(
-                study.best_trial.suggest_float("kelly_ratio", 0.0, 2.0)
-            )
+            returns = calculate_returns(self.kelly_ratio)
             self._returns = returns
         return returns
 

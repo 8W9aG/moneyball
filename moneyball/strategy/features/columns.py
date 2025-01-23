@@ -9,7 +9,7 @@ from sportsball.data.player_model import PLAYER_KICKS_COLUMN  # type: ignore
 from sportsball.data.player_model import (PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_IDENTIFIER_COLUMN)
 from sportsball.data.team_model import PLAYER_COLUMN_PREFIX  # type: ignore
-from sportsball.data.team_model import (TEAM_IDENTIFIER_COLUMN,
+from sportsball.data.team_model import (NAME_COLUMN, TEAM_IDENTIFIER_COLUMN,
                                         TEAM_POINTS_COLUMN)
 from sportsball.data.venue_model import VENUE_IDENTIFIER_COLUMN  # type: ignore
 
@@ -32,6 +32,11 @@ def team_identifier_column(team_idx: int) -> str:
 def team_points_column(team_idx: int) -> str:
     """Generate a team points column at a given index."""
     return DELIMITER.join([team_column_prefix(team_idx), TEAM_POINTS_COLUMN])
+
+
+def team_name_column(team_idx: int) -> str:
+    """Generate a team name column at a given index."""
+    return DELIMITER.join([team_column_prefix(team_idx), NAME_COLUMN])
 
 
 def player_column_prefix(team_idx: int, player_idx: int | None) -> str:

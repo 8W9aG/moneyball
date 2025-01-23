@@ -16,8 +16,12 @@ class Moneyball:
 
     def create_strategy(self, df: pd.DataFrame, name: str) -> Strategy:
         """Creates a strategy."""
-        return Strategy(df, name)
+        strategy = Strategy(name)
+        strategy.df = df
+        return strategy
 
     def create_portfolio(self, strategies: list[Strategy], name: str) -> Portfolio:
         """Creates a portfolio."""
-        return Portfolio(strategies, name)
+        portfolio = Portfolio(name)
+        portfolio.strategies = strategies
+        return portfolio

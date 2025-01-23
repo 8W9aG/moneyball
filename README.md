@@ -59,7 +59,61 @@ This is a python package hosted on pypi, so to install simply run the following 
 
 ## Usage example :eyes:
 
-To pull a dataframe containing all the information for a particular league, the following example can be used:
+There are many different ways of using moneyball, but we generally recommend the CLI. This pairs very well with the sister project [sportsball](https://github.com/8W9aG/sportsball).
+
+### CLI
+
+The following operations can be run on the CLI:
+
+#### Train
+
+To train a new strategy:
+
+```
+sportsball --league=nfl - | moneyball test_nfl_strategy train
+```
+
+#### Portfolio
+
+To develop a portfolio of strategies:
+
+```
+moneyball --strategy=test_nfl_strategy --strategy=test_afl_strategy test_portfolio portfolio
+```
+
+#### Next
+
+To get a quantitative report on the next bets to place:
+
+```
+moneyball test_portfolio next
+```
+
+This will result in the following JSON written to stdout:
+
+```json
+{
+    "bets": [{
+        "strategy": "test_nfl_strategy",
+        "league": "nfl",
+        "kelly": 0.32,
+        "weight": 0.1,
+        "probability": 0.95,
+        "teams": [{
+            "name": "giants",
+            "probability": 0.1
+        }, {
+            "name": "dolphins",
+            "probability": 0.9
+        }],
+        "dt": "2025-01-23T16:03:46Z"
+    }]
+}
+```
+
+### Python
+
+To create a portfolio, the following example can be used:
 
 ```python
 from moneyball import moneyball as mnb
