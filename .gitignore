@@ -174,3 +174,7 @@ cython_debug/
 .DS_Store
 .ruff_cache
 .moneyball_cache*
+coverage_html
+.sportsball_*
+sportsball.sqlite
+test_pytest_portfolio

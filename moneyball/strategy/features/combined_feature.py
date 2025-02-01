@@ -3,14 +3,15 @@
 import numpy as np
 import pandas as pd
 from sportsball.data.field_type import FieldType  # type: ignore
-from sportsball.data.game_model import (END_DT_COLUMN,  # type: ignore
-                                        GAME_DT_COLUMN)
+from sportsball.data.game_model import END_DT_COLUMN  # type: ignore
+from sportsball.data.game_model import GAME_DT_COLUMN
 
 from .datetime_feature import DatetimeFeature
 from .datetimesub_feature import DatetimeSubFeature
 from .feature import Feature
 from .lag_feature import LagFeature
 from .min_feature import MinFeature
+from .offensive_efficiency_feature import OffensiveEfficiencyFeature
 from .ordinal_feature import OrdinalFeature
 from .skill_feature import SkillFeature
 from .sma_feature import SMAFeature
@@ -36,6 +37,7 @@ class CombinedFeature(Feature):
                 MinFeature(),
                 SMAFeature(),
                 DatetimeSubFeature(END_DT_COLUMN, GAME_DT_COLUMN, "m"),
+                OffensiveEfficiencyFeature(),
             ]
         if posttrain_features is None:
             posttrain_features = [
