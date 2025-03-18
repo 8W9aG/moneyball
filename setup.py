@@ -23,7 +23,7 @@ def install_requires() -> typing.List[str]:
 
 setup(
     name='moneyball',
-    version='0.0.7',
+    version='0.0.8',
     description='A library for determining what bets to make.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -38,5 +38,8 @@ setup(
     license='MIT',
     install_requires=install_requires(),
     zip_safe=False,
-    packages=find_packages()
+    packages=find_packages(),
+    entry_points = {
+        'console_scripts': ['moneyball=moneyball.__main__:main'],
+    },
 )

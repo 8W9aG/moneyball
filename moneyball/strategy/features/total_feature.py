@@ -30,7 +30,7 @@ def _process_player_team_games(df: pd.DataFrame, cols: list[str]) -> pd.DataFram
         for i in range(team_count):
             team_idx = row[cols.index(team_identifier_column(i)) + 1]
             # Check for NaNs
-            if team_idx != team_idx:
+            if team_idx != team_idx or team_idx is None:
                 continue
             for j in range(player_count):
                 player_col = player_identifier_column(i, j)
@@ -38,7 +38,7 @@ def _process_player_team_games(df: pd.DataFrame, cols: list[str]) -> pd.DataFram
                     continue
                 player_idx = row[cols.index(player_col) + 1]
                 # Check for NaNs
-                if player_idx != player_idx:
+                if player_idx != player_idx or player_idx is None:
                     continue
                 key = "-".join([team_idx, player_idx])
                 count = player_team_games.get(key, 0)
@@ -74,11 +74,11 @@ def _process_team_venue_games(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame
         for i in range(team_count):
             team_idx = row[cols.index(team_identifier_column(i)) + 1]
             # Check for NaNs
-            if team_idx != team_idx:
+            if team_idx != team_idx or team_idx is None:
                 continue
             venue_idx = row[cols.index(venue_identifier_column()) + 1]
             # Check for NaNs
-            if venue_idx != venue_idx:
+            if venue_idx != venue_idx or venue_idx is None:
                 continue
             key = "-".join([team_idx, venue_idx])
             count = venue_team_games.get(key, 0)

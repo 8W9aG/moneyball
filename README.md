@@ -57,6 +57,10 @@ This is a python package hosted on pypi, so to install simply run the following 
 
 `pip install moneyball`
 
+or install using this local repository:
+
+`python setup.py install --old-and-unmanageable`
+
 ## Usage example :eyes:
 
 There are many different ways of using moneyball, but we generally recommend the CLI. This pairs very well with the sister project [sportsball](https://github.com/8W9aG/sportsball).

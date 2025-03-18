@@ -17,3 +17,4 @@ pytest-sugar==1.0.0
 pytest-cov==6.0.0
 requests-mock==1.12.1
 types-requests==2.32.0.20241016
+py-spy==0.4.0

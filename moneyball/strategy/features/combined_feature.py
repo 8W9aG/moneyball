@@ -48,6 +48,21 @@ class CombinedFeature(Feature):
         self._posttrain_features = posttrain_features
 
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
+        def fix_tz(row: pd.Series) -> pd.Series:
+            end_dt = row[END_DT_COLUMN]
+            start_dt = row[GAME_DT_COLUMN]
+            if end_dt is None or start_dt is None:
+                return row
+            if end_dt.tzinfo is None and start_dt.tzinfo is not None:
+                end_dt = end_dt.tz_localize(start_dt.tzinfo)
+            elif end_dt.tzinfo is not None and start_dt.tzinfo is None:
+                start_dt = start_dt.tz_localize(end_dt.tzinfo)
+            row[END_DT_COLUMN] = end_dt
+            row[GAME_DT_COLUMN] = start_dt
+            return row
+
+        df = df.apply(fix_tz, axis=1)
+
         for feature in self._pretrain_features:
             df = feature.process(df)
         df = df[list(set(df.columns.values) - set(df.attrs[str(FieldType.LOOKAHEAD)]))]

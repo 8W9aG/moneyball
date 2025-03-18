@@ -28,5 +28,7 @@ class DatetimeSubFeature(Feature):
         attrs = df.attrs
         df = self._dtsf.fit_transform(df)
         df.attrs = attrs
+        if str(FieldType.LOOKAHEAD) in df.attrs:
+            df.attrs[str(FieldType.LOOKAHEAD)] = []
         df.attrs[str(FieldType.LOOKAHEAD)].append(self.column_name)
         return df

@@ -1,5 +1,6 @@
 """The lag feature extractor."""
 
+import numpy as np
 import pandas as pd
 from sportsball.data.game_model import GAME_ATTENDANCE_COLUMN  # type: ignore
 from sportsball.data.game_model import GAME_WEEK_COLUMN
@@ -136,7 +137,7 @@ def _process_round_attendance(df: pd.DataFrame) -> pd.DataFrame:
                 last_round_count = current_round_count
                 current_round_count = 0
 
-            current_round_count += int(row[attendance_col])
+            current_round_count += int(np.nan_to_num(row[attendance_col]))
             row[round_attendance_col] = last_round_count
             return row
 

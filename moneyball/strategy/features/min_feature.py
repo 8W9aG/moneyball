@@ -18,7 +18,11 @@ def _process_season_start_dt(df: pd.DataFrame) -> pd.DataFrame:
     def record_season_start_dt(row: pd.Series) -> pd.Series:
         nonlocal season_start_dt
         nonlocal season_start_dt_col
-        season_key = "-".join([str(row[SEASON_YEAR_COLUMN]), row[SEASON_TYPE_COLUMN]])
+        season_attributes = [str(row[SEASON_YEAR_COLUMN])]
+        season_type = row[SEASON_TYPE_COLUMN]
+        if season_type is not None:
+            season_attributes.append(season_type)
+        season_key = "-".join(season_attributes)
         if season_key not in season_start_dt:
             season_start_dt[season_key] = row[GAME_DT_COLUMN]
         row[season_start_dt_col] = season_start_dt[season_key]

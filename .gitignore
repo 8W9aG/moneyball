@@ -178,3 +178,5 @@ coverage_html
 .sportsball_*
 sportsball.sqlite
 test_pytest_portfolio
+*.gzip
+test_*

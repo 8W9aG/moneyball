@@ -1,6 +1,8 @@
 """The skill feature extractor."""
 
 import datetime
+import hashlib
+import os
 from warnings import simplefilter
 
 import pandas as pd
@@ -12,7 +14,7 @@ from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.league_model import DELIMITER  # type: ignore
 
-from ...cache import MEMORY
+from ...cache import moneyball_cachetmp_folder
 from .columns import (find_player_count, find_team_count, player_column_prefix,
                       player_identifier_column, team_column_prefix,
                       team_identifier_column, team_points_column)
@@ -332,6 +334,11 @@ def _create_all_features(
     return df
 
 
+def _df_hash(df: pd.DataFrame) -> str:
+    csv = df.to_csv()
+    return hashlib.sha256(csv.encode('utf-8')).hexdigest()
+
+
 class SkillFeature(Feature):
     """The skill feature extractor class."""
 
@@ -391,11 +398,19 @@ class SkillFeature(Feature):
         if None in self._year_slices:
             df = _create_all_features(df, team_count, player_count)
 
-        @MEMORY.cache
         def calculate_skills(group: pd.DataFrame) -> pd.DataFrame:
             nonlocal df
             nonlocal team_count
             nonlocal player_count
+
+            df_hash = _df_hash(group)
+            df_cache_file = os.path.join(
+                moneyball_cachetmp_folder(), f"{df_hash}.parquet.gzip"
+            )
+            if os.path.exists(df_cache_file):
+                print(f"Found file {df_cache_file}")
+                return pd.read_parquet(df_cache_file)
+
             dates = group[GAME_DT_COLUMN].dt.date.values.tolist()
             if not dates:
                 return group
@@ -424,12 +439,19 @@ class SkillFeature(Feature):
                     (team_model, teams),
                     (player_model, players),
                 )
+
+            group.to_parquet(df_cache_file, compression="gzip")
+            print(f"Writing file {df_cache_file}")
+
             return group
 
-        return (
+        attrs = df.attrs
+        df = (
             df.groupby(  # type: ignore
                 [df[GAME_DT_COLUMN].dt.date]
             )
-            .parallel_apply(calculate_skills)
+            .progress_apply(calculate_skills)
             .reset_index(drop=True)
         )
+        df.attrs = attrs
+        return df

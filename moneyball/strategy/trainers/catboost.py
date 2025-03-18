@@ -266,6 +266,8 @@ class CatboostTrainer(Trainer):
             text_features = list(set(text_features) & set(valid_cols))
             cat_features = list(set(cat_features) & set(valid_cols))
         x = _sanitise_features(x, self._text_features)
+        print("x:")
+        print(x)
         weight = None
         if y is not None:
             weight = self._weight.process(y)

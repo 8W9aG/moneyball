@@ -22,6 +22,7 @@ from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import GAME_WEEK_COLUMN
 from sportsball.data.league_model import DELIMITER  # type: ignore
+import wavetrainer as wt
 
 from .features import CombinedFeature
 from .reducers import CombinedReducer
@@ -43,6 +44,8 @@ def _next_week_dt(
     dt_column = DELIMITER.join([GAME_DT_COLUMN])
     if current_dt is not None:
         df = df[df[dt_column] >= current_dt]
+    if df.empty:
+        return None
     current_week = df.iloc[0][week_column]
     for _, row in df.iterrows():
         week = row[week_column]
@@ -152,7 +155,7 @@ class Strategy:
                 df[[GAME_DT_COLUMN, x]].dropna()[GAME_DT_COLUMN].iloc[0].to_pydatetime()
                 for x in df.attrs[str(FieldType.ODDS)]
             )
-            start_dt = max(
+            start_dt = min(
                 start_dt,  # type: ignore
                 pytz.utc.localize(datetime.datetime.now() - relativedelta(years=5)),
             )
@@ -173,12 +176,16 @@ class Strategy:
         if len(training_cols) == 2:
             y[OUTPUT_COLUMN] = y[OUTPUT_COLUMN].astype(bool)
         y = y[[OUTPUT_COLUMN]]
+        print(x)
+        print(y)
 
         # Walkforward by week
         predictions = []
         current_n_trials = max(32 - len(self._study.trials), 1)
         while True:
+            print(f"start_dt: {start_dt}")
             start_dt = _next_week_dt(start_dt, x)
+            print(f"start_dt: {start_dt}")
             if start_dt is None:
                 break
             x_walk = x[x[GAME_DT_COLUMN] < start_dt]
@@ -269,7 +276,9 @@ class Strategy:
 
             print("Final Out of Sample Metrics:")
             predictions.append(_print_metrics(y_test, y_pred))
-        return statistics.mean(predictions)
+        if predictions:
+            return statistics.mean(predictions)
+        return 0.0
 
     def predict(self, start_dt: datetime.datetime | None = None) -> pd.DataFrame:
         """Predict the results from walk-forward."""

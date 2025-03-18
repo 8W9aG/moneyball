@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import sys
+import warnings
 
 import pandas as pd
 from sportsball.loglevel import LogLevel  # type: ignore
@@ -13,6 +14,8 @@ from . import __VERSION__
 from .function import Function
 from .portfolio import Portfolio
 from .strategy import Strategy
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 def main() -> None:
