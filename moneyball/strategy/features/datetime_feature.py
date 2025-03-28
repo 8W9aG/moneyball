@@ -29,7 +29,10 @@ class DatetimeFeature(Feature):
     def __init__(self) -> None:
         super().__init__()
         self._dtf = DatetimeFeatures(
-            features_to_extract="all", missing_values="ignore", drop_original=False, utc=True
+            features_to_extract="all",
+            missing_values="ignore",
+            drop_original=False,
+            utc=True,
         )
 
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -49,7 +52,7 @@ class DatetimeFeature(Feature):
                 replace_dt = random_dt
         df = df.replace({pd.NaT: replace_dt})
         for dt_column in dt_columns:
-            df[dt_column] = pd.to_datetime(dt_column, utc=True, errors='coerce')
+            df[dt_column] = pd.to_datetime(dt_column, utc=True, errors="coerce")
         df = self._dtf.fit_transform(df)
 
         def fix_dummy_date(row: pd.Series) -> pd.Series:

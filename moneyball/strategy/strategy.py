@@ -5,64 +5,50 @@ import datetime
 import multiprocessing
 import os
 import pickle
-import statistics
-import uuid
 
 import empyrical  # type: ignore
 import numpy as np
 import optuna
 import pandas as pd
 import pytz
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
+import wavetrainer as wt  # type: ignore
 from joblib import parallel_backend  # type: ignore
-from sklearn.metrics import precision_score  # type: ignore
-from sklearn.metrics import accuracy_score, recall_score
 from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
-from sportsball.data.game_model import GAME_WEEK_COLUMN
+from sportsball.data.game_model import VENUE_COLUMN_PREFIX
 from sportsball.data.league_model import DELIMITER  # type: ignore
-import wavetrainer as wt
+from sportsball.data.player_model import \
+    ASSISTS_COLUMN as PLAYER_ASSISTS_COLUMN  # type: ignore
+from sportsball.data.player_model import \
+    FIELD_GOALS_ATTEMPTED_COLUMN as \
+    PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN  # type: ignore
+from sportsball.data.player_model import \
+    FIELD_GOALS_COLUMN as PLAYER_FIELD_GOALS_COLUMN  # type: ignore
+from sportsball.data.player_model import \
+    OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
+from sportsball.data.player_model import (  # type: ignore
+    PLAYER_FUMBLES_COLUMN, PLAYER_FUMBLES_LOST_COLUMN, PLAYER_KICKS_COLUMN)
+from sportsball.data.player_model import \
+    TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
+from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
+from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
+                                        FIELD_GOALS_COLUMN,
+                                        OFFENSIVE_REBOUNDS_COLUMN,
+                                        TURNOVERS_COLUMN)
+from sportsfeatures.entity_type import EntityType  # type: ignore
+from sportsfeatures.identifier import Identifier  # type: ignore
+from sportsfeatures.process import process  # type: ignore
 
 from .features import CombinedFeature
-from .reducers import CombinedReducer
-from .trainers import (FEATURES_USR_ATTR, HASH_USR_ATTR, CatboostTrainer,
-                       VennAbersTrainer)
-from .trainers.output_column import OUTPUT_COLUMN, OUTPUT_PROB_COLUMN_PREFIX
+from .features.columns import (find_player_count, find_team_count,
+                               player_column_prefix, player_identifier_column,
+                               team_column_prefix, team_identifier_column,
+                               team_points_column, venue_identifier_column)
 
-_SAMPLER_FILENAME = "sampler.pkl"
+HOME_WIN_COLUMN = "home_win"
+
 _KELLY_SAMPLER_FILENAME = "kelly_sampler.pkl"
 _DF_FILENAME = "df.parquet.gzip"
-
-
-def _next_week_dt(
-    current_dt: datetime.datetime | None, df: pd.DataFrame
-) -> datetime.datetime | None:
-    if df.empty:
-        return None
-    week_column = DELIMITER.join([GAME_WEEK_COLUMN])
-    dt_column = DELIMITER.join([GAME_DT_COLUMN])
-    if current_dt is not None:
-        df = df[df[dt_column] >= current_dt]
-    if df.empty:
-        return None
-    current_week = df.iloc[0][week_column]
-    for _, row in df.iterrows():
-        week = row[week_column]
-        if current_week != week:
-            return pd.to_datetime(row[dt_column]).to_pydatetime()
-    try:
-        return pd.to_datetime(df[dt_column]).to_pydatetime()[-1]  # type: ignore
-    except AttributeError:
-        return None
-
-
-def _print_metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame) -> float:
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"Accuracy: {accuracy}")
-    print(f"Precision: {precision_score(y_test, y_pred)}")
-    print(f"Recall: {recall_score(y_test, y_pred)}")
-    return accuracy
 
 
 class Strategy:
@@ -72,16 +58,11 @@ class Strategy:
 
     _returns: pd.Series | None
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, use_sports_feature: bool = False) -> None:
         self._df = None
         self._name = name
         self._features = CombinedFeature()
-        self._reducers = CombinedReducer(
-            [
-                DELIMITER.join([GAME_WEEK_COLUMN]),
-                DELIMITER.join([GAME_DT_COLUMN]),
-            ]
-        )
+        self._use_sports_features = use_sports_feature
         os.makedirs(name, exist_ok=True)
 
         # Load dataframe previously used.
@@ -89,19 +70,13 @@ class Strategy:
         if os.path.exists(df_file):
             self._df = pd.read_parquet(df_file)
 
-        # Load trainer study
-        storage_name = f"sqlite:///{name}/study.db"
-        sampler_file = os.path.join(name, _SAMPLER_FILENAME)
-        restored_sampler = None
-        if os.path.exists(sampler_file):
-            with open(sampler_file, "rb") as handle:
-                restored_sampler = pickle.load(handle)
-        self._study = optuna.create_study(
-            study_name=name,
-            storage=storage_name,
-            load_if_exists=True,
-            sampler=restored_sampler,
-            direction=optuna.study.StudyDirection.MAXIMIZE,
+        self._wt = wt.create(
+            self._name,
+            dt_column=GAME_DT_COLUMN,
+            walkforward_timedelta=datetime.timedelta(days=7),
+            validation_size=datetime.timedelta(days=365),
+            max_train_timeout=datetime.timedelta(hours=12),
+            cutoff_dt=datetime.datetime.now(tz=pytz.UTC),
         )
 
         # Load kelly study
@@ -142,206 +117,28 @@ class Strategy:
         """Find the best kelly ratio for this strategy."""
         return self._kelly_study.best_trial.suggest_float("kelly_ratio", 0.0, 2.0)
 
-    def fit(self, start_dt: datetime.datetime | None = None):
+    def fit(self):
         """Fits the strategy to the dataset by walking forward."""
-        # pylint: disable=too-many-statements
-
         df = self.df
         if df is None:
-            raise ValueError("df is null.")
+            raise ValueError("df is null")
+        training_cols = df.attrs[str(FieldType.POINTS)]
+        x_df = self._process()
+        y = df[training_cols]
+        y[HOME_WIN_COLUMN] = np.argmax(y.to_numpy(), axis=1)
+        x_df = x_df.drop(columns=training_cols)
+        x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)])
+        self._wt.fit(x_df, y=y[HOME_WIN_COLUMN].astype(bool))
 
-        if start_dt is None:
-            start_dt = max(
-                df[[GAME_DT_COLUMN, x]].dropna()[GAME_DT_COLUMN].iloc[0].to_pydatetime()
-                for x in df.attrs[str(FieldType.ODDS)]
-            )
-            start_dt = min(
-                start_dt,  # type: ignore
-                pytz.utc.localize(datetime.datetime.now() - relativedelta(years=5)),
-            )
-
-        df = df.copy()
-        df = df[
-            df[GAME_DT_COLUMN]
-            < pytz.utc.localize(datetime.datetime.now() - datetime.timedelta(days=1.0))
-        ]
-        if df is None:
-            raise ValueError("df is null.")
-
-        training_cols = set(df.attrs[str(FieldType.POINTS)])
-        x = self._features.process(df)
-        x = self._reducers.process(x)
-        y = df[list(training_cols)]
-        y[OUTPUT_COLUMN] = np.argmax(y.to_numpy(), axis=1)
-        if len(training_cols) == 2:
-            y[OUTPUT_COLUMN] = y[OUTPUT_COLUMN].astype(bool)
-        y = y[[OUTPUT_COLUMN]]
-        print(x)
-        print(y)
-
-        # Walkforward by week
-        predictions = []
-        current_n_trials = max(32 - len(self._study.trials), 1)
-        while True:
-            print(f"start_dt: {start_dt}")
-            start_dt = _next_week_dt(start_dt, x)
-            print(f"start_dt: {start_dt}")
-            if start_dt is None:
-                break
-            x_walk = x[x[GAME_DT_COLUMN] < start_dt]
-            y_walk = y.iloc[: len(x_walk)]
-            if len(x_walk) == len(x) or len(y_walk) == len(y):
-                break
-            folder = os.path.join(self._name, str(start_dt.date()))
-            if os.path.exists(folder):
-                continue
-            os.makedirs(folder, exist_ok=True)
-            print(f"Trainer {folder}")
-            # next_dt = _next_week_dt(start_dt, x)
-            x_test = x[x[GAME_DT_COLUMN] >= start_dt]
-            y_test = y.iloc[len(x_walk) : len(x_walk) + len(x_test)]
-
-            def objective(trial: optuna.Trial) -> float:
-                trial.set_user_attr(HASH_USR_ATTR, str(uuid.uuid4()))
-                trainer = VennAbersTrainer(
-                    folder,
-                    CatboostTrainer(
-                        folder,
-                        df.attrs[str(FieldType.CATEGORICAL)],
-                        df.attrs[str(FieldType.TEXT)],
-                        trial=trial,
-                    ),
-                )
-                x_split, y_split = trainer.split_train_test(x_walk, y_walk)
-                features, iterations = trainer.select_features(x_split, y_split)
-                trial.set_user_attr(FEATURES_USR_ATTR, features)
-                trial.set_user_attr("ITERATIONS", iterations)
-
-                print("In Sample Metrics:")
-                y_pred = trainer.predict(x_split[0])
-                if y_pred is None:
-                    raise ValueError("y_pred is null")
-                _print_metrics(y_split[0], y_pred)
-
-                print("Out of Sample Metrics:")
-                y_pred = trainer.predict(x_test)
-                if y_pred is None:
-                    raise ValueError("y_pred is null")
-                _print_metrics(y_test, y_pred)
-
-                print("Test Metrics:")
-                y_pred = trainer.predict(x_split[1])
-                if y_pred is None:
-                    raise ValueError("y_pred is null")
-                return _print_metrics(y_split[1], y_pred)
-
-            self._study.optimize(objective, n_trials=current_n_trials)
-            current_n_trials = 1
-            with open(os.path.join(self._name, _SAMPLER_FILENAME), "wb") as handle:
-                pickle.dump(self._study.sampler, handle)
-            best_trial = self._study.best_trial
-            trainer = VennAbersTrainer(
-                folder,
-                CatboostTrainer(
-                    folder,
-                    df.attrs[str(FieldType.CATEGORICAL)],
-                    df.attrs[str(FieldType.TEXT)],
-                    trial=best_trial,
-                ),
-            )
-            trainer.fit(
-                (
-                    x_walk[
-                        [
-                            x
-                            for x in best_trial.user_attrs[FEATURES_USR_ATTR]
-                            if x in x_walk.columns.values
-                        ]
-                    ],
-                    None,
-                ),
-                (y_walk, None),
-            )
-            trainer.save()
-
-            y_pred = trainer.predict(x_walk)
-            if y_pred is None:
-                raise ValueError("y_pred is null")
-            print("Final In Sample Metrics:")
-            _print_metrics(y_walk, y_pred)
-
-            y_pred = trainer.predict(x_test)
-            if y_pred is None:
-                raise ValueError("y_pred is null")
-
-            print("Final Out of Sample Metrics:")
-            predictions.append(_print_metrics(y_test, y_pred))
-        if predictions:
-            return statistics.mean(predictions)
-        return 0.0
-
-    def predict(self, start_dt: datetime.datetime | None = None) -> pd.DataFrame:
+    def predict(self) -> pd.DataFrame:
         """Predict the results from walk-forward."""
-        dt_column = DELIMITER.join([GAME_DT_COLUMN])
-
         df = self.df
         if df is None:
             raise ValueError("df is null.")
-
-        if start_dt is None:
-            start_dt = max(
-                df[[dt_column, x]].dropna()[dt_column].iloc[0].to_pydatetime()
-                for x in df.attrs[str(FieldType.ODDS)]
-            )
-            start_dt = max(
-                start_dt,  # type: ignore
-                pytz.utc.localize(datetime.datetime.now() - relativedelta(years=5)),
-            )
-
-        df = df.copy()
-        df = df[
-            df[dt_column]
-            < pytz.utc.localize(datetime.datetime.now() - datetime.timedelta(days=1.0))
-        ]
-        if df is None:
-            raise ValueError("df is null.")
-
-        x = self._features.process(df)
-
-        for folder_name in sorted(os.listdir(self._name)):
-            folder = os.path.join(self._name, folder_name)
-            if not os.path.isdir(folder):
-                continue
-            start_dt = parse(folder_name)
-            x_test = x[x[dt_column] >= start_dt]
-            trainer = VennAbersTrainer(
-                folder,
-                CatboostTrainer(
-                    folder,
-                    df.attrs[str(FieldType.CATEGORICAL)],
-                    df.attrs[str(FieldType.TEXT)],
-                ),
-            )
-            trainer.load()
-            y_prob = trainer.predict_proba(x_test)
-            if y_prob is None:
-                raise ValueError("y_prob is null")
-
-            for column in y_prob.columns.values:
-                if column not in x:
-                    x[column] = None
-                x_small = x[x[dt_column] >= start_dt]
-                i_start = len(x) - len(x_small)
-                i_end = i_start + len(x_small)
-                x.iloc[i_start:i_end, x.columns.get_loc(column)] = list(  # type: ignore
-                    y_prob[column].values
-                )
-
-        df = df.reset_index().drop(columns=["index"])
-        for points_col in df.attrs[str(FieldType.POINTS)]:
-            x[points_col] = df[points_col].values
-
-        return x
+        x_df = self._process()
+        training_cols = df.attrs[str(FieldType.POINTS)]
+        x_df = x_df.drop(columns=training_cols)
+        return self._wt.transform(x_df)
 
     def returns(self) -> pd.Series:
         """Render the returns of the strategy."""
@@ -354,6 +151,9 @@ class Strategy:
             df = self.predict()
             dt_column = DELIMITER.join([GAME_DT_COLUMN])
             points_cols = main_df.attrs[str(FieldType.POINTS)]
+            prob_col = "_".join(
+                [HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX]  # type: ignore
+            )
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
                 index = []
@@ -368,11 +168,7 @@ class Strategy:
                         row_df = row.to_frame().T
                         odds_df = row_df[main_df.attrs[str(FieldType.ODDS)]]
                         row_df = row_df[
-                            [
-                                x
-                                for x in row_df.columns.values
-                                if x.startswith(OUTPUT_PROB_COLUMN_PREFIX)
-                            ]
+                            [x for x in row_df.columns.values if x.startswith(prob_col)]
                         ]
                         if row_df.isnull().values.any():
                             continue
@@ -399,11 +195,7 @@ class Strategy:
                         points_df = row_df[points_cols]
                         odds_df = row_df[main_df.attrs[str(FieldType.ODDS)]]
                         row_df = row_df[
-                            [
-                                x
-                                for x in row_df.columns.values
-                                if x.startswith(OUTPUT_PROB_COLUMN_PREFIX)
-                            ]
+                            [x for x in row_df.columns.values if x.startswith(prob_col)]
                         ]
                         if row_df.isnull().values.any():
                             continue
@@ -450,3 +242,108 @@ class Strategy:
         df = df[df[dt_column] > start_dt]
         df = df[df[dt_column] <= end_dt]
         return df
+
+    def _process(self) -> pd.DataFrame:
+        df = self.df
+        if df is None:
+            raise ValueError("df is null")
+        if self._use_sports_features:
+            team_count = find_team_count(df)
+
+            identifiers = [
+                Identifier(
+                    EntityType.VENUE,
+                    venue_identifier_column(),
+                    [],
+                    VENUE_COLUMN_PREFIX,
+                )
+            ]
+            for i in range(team_count):
+                identifiers.append(
+                    Identifier(
+                        EntityType.TEAM,
+                        team_identifier_column(i),
+                        [
+                            DELIMITER.join([team_column_prefix(i), x])
+                            for x in [
+                                FIELD_GOALS_COLUMN,
+                                FIELD_GOALS_ATTEMPTED_COLUMN,
+                                OFFENSIVE_REBOUNDS_COLUMN,
+                                ASSISTS_COLUMN,
+                                TURNOVERS_COLUMN,
+                                "kicks",
+                            ]
+                        ],
+                        team_column_prefix(i),
+                        points_column=team_points_column(i),
+                        field_goals_column=DELIMITER.join(
+                            [team_column_prefix(i), FIELD_GOALS_COLUMN]
+                        ),
+                        assists_column=DELIMITER.join(
+                            [team_column_prefix(i), ASSISTS_COLUMN]
+                        ),
+                        field_goals_attempted_column=DELIMITER.join(
+                            [team_column_prefix(i), FIELD_GOALS_ATTEMPTED_COLUMN]
+                        ),
+                        offensive_rebounds_column=DELIMITER.join(
+                            [team_column_prefix(i), OFFENSIVE_REBOUNDS_COLUMN]
+                        ),
+                        turnovers_column=DELIMITER.join(
+                            [team_column_prefix(i), TURNOVERS_COLUMN]
+                        ),
+                    )
+                )
+                player_count = find_player_count(df, i)
+                identifiers.extend(
+                    [
+                        Identifier(
+                            EntityType.PLAYER,
+                            player_identifier_column(i, x),
+                            [
+                                DELIMITER.join([player_identifier_column(i, x), y])
+                                for y in [
+                                    PLAYER_KICKS_COLUMN,
+                                    PLAYER_FUMBLES_COLUMN,
+                                    PLAYER_FUMBLES_LOST_COLUMN,
+                                    PLAYER_FIELD_GOALS_COLUMN,
+                                    PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
+                                    PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
+                                    PLAYER_ASSISTS_COLUMN,
+                                    PLAYER_TURNOVERS_COLUMN,
+                                ]
+                            ],
+                            player_column_prefix(i, x),
+                            points_column=team_points_column(i),
+                            field_goals_column=DELIMITER.join(
+                                [player_column_prefix(i, x), PLAYER_FIELD_GOALS_COLUMN]
+                            ),
+                            assists_column=DELIMITER.join(
+                                [player_column_prefix(i, x), PLAYER_ASSISTS_COLUMN]
+                            ),
+                            field_goals_attempted_column=DELIMITER.join(
+                                [
+                                    player_column_prefix(i, x),
+                                    PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
+                                ]
+                            ),
+                            offensive_rebounds_column=DELIMITER.join(
+                                [
+                                    player_column_prefix(i, x),
+                                    PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
+                                ]
+                            ),
+                            turnovers_column=DELIMITER.join(
+                                [player_column_prefix(i, x), PLAYER_TURNOVERS_COLUMN]
+                            ),
+                            team_identifier_column=team_identifier_column(i),
+                        )
+                        for x in range(player_count)
+                    ]
+                )
+            return process(
+                df,
+                GAME_DT_COLUMN,
+                identifiers,
+                [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
+            )
+        return self._features.process(df)

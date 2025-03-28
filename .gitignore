@@ -180,3 +180,4 @@ sportsball.sqlite
 test_pytest_portfolio
 *.gzip
 test_*
+catboost_info

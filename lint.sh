@@ -14,7 +14,7 @@ flake8 moneyball
 echo "--- pylint ---"
 pylint moneyball
 echo "--- mypy ---"
-mypy moneyball
+mypy moneyball --disable-error-code=import-untyped
 echo "--- Ruff ---"
 ruff check moneyball
 echo "--- pyright ---"

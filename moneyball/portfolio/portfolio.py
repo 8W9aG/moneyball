@@ -1,23 +1,22 @@
 """The portfolio class."""
 
+# pylint: disable=line-too-long
 import datetime
 import json
-import logging
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyfolio as pf  # type: ignore
+import riskfolio as rp  # type: ignore
+import wavetrainer as wt  # type: ignore
 from fullmonte import plot, simulate  # type: ignore
-from skfolio import RiskMeasure  # type: ignore
-from skfolio.optimization import MeanRisk, ObjectiveFunction  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import LEAGUE_COLUMN
 
-from ..strategy import Strategy
 from ..strategy.features.columns import find_team_count, team_name_column
-from ..strategy.trainers.output_column import output_prob_column
+from ..strategy.strategy import HOME_WIN_COLUMN, Strategy
 from .next_bets import NextBets
 
 _PORTFOLIO_FILENAME = "portfolio.json"
@@ -75,31 +74,15 @@ class Portfolio:
                     returns.loc[index] * (1.0 / len(returns.columns.values))
                 ).sum()
             else:
-                model = MeanRisk(
-                    risk_measure=RiskMeasure.VARIANCE,
-                    objective_function=ObjectiveFunction.MAXIMIZE_RETURN,
-                    portfolio_params={"name": "Max Sharpe"},
+                port = rp.Portfolio(returns=returns)
+                weights = port.optimization(
+                    model="Classic", rm="MV", obj="MaxRet", hist=True
                 )
-                try:
-                    model.fit(x.to_numpy())
-                    ret.loc[index, self._name] = (
-                        returns.loc[index] * model.weights_
-                    ).sum()
-                    self._weights = {
-                        self._strategies[i].name: model.weights_[i]
-                        for i in range(len(model.weights_))
-                    }
-                except ValueError as e:
-                    logging.warning(
-                        "Encountered %s when fitting meanrisk model.", str(e)
-                    )
-                    ret.loc[index, self._name] = (
-                        returns.loc[index] * (1.0 / len(returns.columns.values))
-                    ).sum()
-                    self._weights = {
-                        self._strategies[i].name: 0.0
-                        for i in range(len(self._strategies))
-                    }
+                total_ret = 0.0
+                for col in returns:
+                    ret.loc[index, col] *= weights[col]  # type: ignore
+                    total_ret += ret.loc[index, col]  # type: ignore
+                ret.loc[index, self._name] = total_ret
 
         ret = ret.asfreq("D").fillna(0.0)
         ret.index = ret.index.tz_localize("UTC")  # type: ignore
@@ -137,6 +120,7 @@ class Portfolio:
     def next_bets(self) -> NextBets:
         """Find the strategies next bet information."""
         bets: NextBets = {"bets": []}
+        prob_col = "_".join([HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX])  # type: ignore
         for strategy in self._strategies:
             next_df = strategy.next()
             team_count = find_team_count(next_df)
@@ -150,7 +134,7 @@ class Portfolio:
                         "teams": [
                             {
                                 "name": row[team_name_column(x)],
-                                "probability": row[output_prob_column(x)],
+                                "probability": row[prob_col + "_" + str(x)],
                             }
                             for x in range(team_count)
                         ],
