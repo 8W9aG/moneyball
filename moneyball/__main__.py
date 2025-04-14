@@ -37,12 +37,6 @@ def main() -> None:
         required=False,
     )
     parser.add_argument(
-        "--new-features",
-        action=argparse.BooleanOptionalAction,
-        required=False,
-        default=False,
-    )
-    parser.add_argument(
         "name",
         help="The name of the strategy/portfolio.",
     )
@@ -79,7 +73,7 @@ def main() -> None:
         case Function.PORTFOLIO:
             if args.name is None:
                 raise ValueError("--name cannot be empty when creating a portfolio.")
-            strategies = [Strategy(x, args.new_features) for x in args.strategy]
+            strategies = [Strategy(x) for x in args.strategy]
             if not strategies:
                 raise ValueError(
                     "--strategy needs to be defined at least once to create a portfolio."

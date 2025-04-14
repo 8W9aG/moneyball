@@ -39,7 +39,6 @@ from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.process import process  # type: ignore
 
-from .features import CombinedFeature
 from .features.columns import (find_player_count, find_team_count,
                                player_column_prefix, player_identifier_column,
                                team_column_prefix, team_identifier_column,
@@ -61,7 +60,6 @@ class Strategy:
     def __init__(self, name: str, use_sports_feature: bool = False) -> None:
         self._df = None
         self._name = name
-        self._features = CombinedFeature()
         self._use_sports_features = use_sports_feature
         os.makedirs(name, exist_ok=True)
 
@@ -77,6 +75,7 @@ class Strategy:
             validation_size=datetime.timedelta(days=365),
             max_train_timeout=datetime.timedelta(hours=12),
             cutoff_dt=datetime.datetime.now(tz=pytz.UTC),
+            test_size=datetime.timedelta(days=365 * 2),
         )
 
         # Load kelly study
@@ -127,7 +126,7 @@ class Strategy:
         y = df[training_cols]
         y[HOME_WIN_COLUMN] = np.argmax(y.to_numpy(), axis=1)
         x_df = x_df.drop(columns=training_cols)
-        x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)])
+        x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
         self._wt.fit(x_df, y=y[HOME_WIN_COLUMN].astype(bool))
 
     def predict(self) -> pd.DataFrame:
@@ -137,7 +136,8 @@ class Strategy:
             raise ValueError("df is null.")
         x_df = self._process()
         training_cols = df.attrs[str(FieldType.POINTS)]
-        x_df = x_df.drop(columns=training_cols)
+        x_df = x_df.drop(columns=training_cols, errors="ignore")
+        x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
         return self._wt.transform(x_df)
 
     def returns(self) -> pd.Series:
@@ -166,7 +166,6 @@ class Strategy:
                     fs = []
                     for _, row in group.iterrows():
                         row_df = row.to_frame().T
-                        odds_df = row_df[main_df.attrs[str(FieldType.ODDS)]]
                         row_df = row_df[
                             [x for x in row_df.columns.values if x.startswith(prob_col)]
                         ]
@@ -175,9 +174,7 @@ class Strategy:
                         arr = row_df.to_numpy().flatten()
                         team_idx = np.argmax(arr)
                         prob = arr[team_idx]
-                        odds = list(
-                            odds_df[main_df.attrs[str(FieldType.ODDS)][team_idx]].values
-                        )[0]
+                        odds = row[f"teams/{team_idx}_odds"]
                         bet_prob = 1.0 / odds
                         f = max(prob - ((1.0 - prob) / bet_prob), 0.0) * kelly_ratio
                         fs.append(f)
@@ -247,103 +244,101 @@ class Strategy:
         df = self.df
         if df is None:
             raise ValueError("df is null")
-        if self._use_sports_features:
-            team_count = find_team_count(df)
+        team_count = find_team_count(df)
 
-            identifiers = [
+        identifiers = [
+            Identifier(
+                EntityType.VENUE,
+                venue_identifier_column(),
+                [],
+                VENUE_COLUMN_PREFIX,
+            )
+        ]
+        for i in range(team_count):
+            identifiers.append(
                 Identifier(
-                    EntityType.VENUE,
-                    venue_identifier_column(),
-                    [],
-                    VENUE_COLUMN_PREFIX,
+                    EntityType.TEAM,
+                    team_identifier_column(i),
+                    [
+                        DELIMITER.join([team_column_prefix(i), x])
+                        for x in [
+                            FIELD_GOALS_COLUMN,
+                            FIELD_GOALS_ATTEMPTED_COLUMN,
+                            OFFENSIVE_REBOUNDS_COLUMN,
+                            ASSISTS_COLUMN,
+                            TURNOVERS_COLUMN,
+                            "kicks",
+                        ]
+                    ],
+                    team_column_prefix(i),
+                    points_column=team_points_column(i),
+                    field_goals_column=DELIMITER.join(
+                        [team_column_prefix(i), FIELD_GOALS_COLUMN]
+                    ),
+                    assists_column=DELIMITER.join(
+                        [team_column_prefix(i), ASSISTS_COLUMN]
+                    ),
+                    field_goals_attempted_column=DELIMITER.join(
+                        [team_column_prefix(i), FIELD_GOALS_ATTEMPTED_COLUMN]
+                    ),
+                    offensive_rebounds_column=DELIMITER.join(
+                        [team_column_prefix(i), OFFENSIVE_REBOUNDS_COLUMN]
+                    ),
+                    turnovers_column=DELIMITER.join(
+                        [team_column_prefix(i), TURNOVERS_COLUMN]
+                    ),
                 )
-            ]
-            for i in range(team_count):
-                identifiers.append(
+            )
+            player_count = find_player_count(df, i)
+            identifiers.extend(
+                [
                     Identifier(
-                        EntityType.TEAM,
-                        team_identifier_column(i),
+                        EntityType.PLAYER,
+                        player_identifier_column(i, x),
                         [
-                            DELIMITER.join([team_column_prefix(i), x])
-                            for x in [
-                                FIELD_GOALS_COLUMN,
-                                FIELD_GOALS_ATTEMPTED_COLUMN,
-                                OFFENSIVE_REBOUNDS_COLUMN,
-                                ASSISTS_COLUMN,
-                                TURNOVERS_COLUMN,
-                                "kicks",
+                            DELIMITER.join([player_column_prefix(i, x), y])
+                            for y in [
+                                PLAYER_KICKS_COLUMN,
+                                PLAYER_FUMBLES_COLUMN,
+                                PLAYER_FUMBLES_LOST_COLUMN,
+                                PLAYER_FIELD_GOALS_COLUMN,
+                                PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
+                                PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
+                                PLAYER_ASSISTS_COLUMN,
+                                PLAYER_TURNOVERS_COLUMN,
                             ]
                         ],
-                        team_column_prefix(i),
+                        player_column_prefix(i, x),
                         points_column=team_points_column(i),
                         field_goals_column=DELIMITER.join(
-                            [team_column_prefix(i), FIELD_GOALS_COLUMN]
+                            [player_column_prefix(i, x), PLAYER_FIELD_GOALS_COLUMN]
                         ),
                         assists_column=DELIMITER.join(
-                            [team_column_prefix(i), ASSISTS_COLUMN]
+                            [player_column_prefix(i, x), PLAYER_ASSISTS_COLUMN]
                         ),
                         field_goals_attempted_column=DELIMITER.join(
-                            [team_column_prefix(i), FIELD_GOALS_ATTEMPTED_COLUMN]
+                            [
+                                player_column_prefix(i, x),
+                                PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
+                            ]
                         ),
                         offensive_rebounds_column=DELIMITER.join(
-                            [team_column_prefix(i), OFFENSIVE_REBOUNDS_COLUMN]
+                            [
+                                player_column_prefix(i, x),
+                                PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
+                            ]
                         ),
                         turnovers_column=DELIMITER.join(
-                            [team_column_prefix(i), TURNOVERS_COLUMN]
+                            [player_column_prefix(i, x), PLAYER_TURNOVERS_COLUMN]
                         ),
+                        team_identifier_column=team_identifier_column(i),
                     )
-                )
-                player_count = find_player_count(df, i)
-                identifiers.extend(
-                    [
-                        Identifier(
-                            EntityType.PLAYER,
-                            player_identifier_column(i, x),
-                            [
-                                DELIMITER.join([player_identifier_column(i, x), y])
-                                for y in [
-                                    PLAYER_KICKS_COLUMN,
-                                    PLAYER_FUMBLES_COLUMN,
-                                    PLAYER_FUMBLES_LOST_COLUMN,
-                                    PLAYER_FIELD_GOALS_COLUMN,
-                                    PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
-                                    PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
-                                    PLAYER_ASSISTS_COLUMN,
-                                    PLAYER_TURNOVERS_COLUMN,
-                                ]
-                            ],
-                            player_column_prefix(i, x),
-                            points_column=team_points_column(i),
-                            field_goals_column=DELIMITER.join(
-                                [player_column_prefix(i, x), PLAYER_FIELD_GOALS_COLUMN]
-                            ),
-                            assists_column=DELIMITER.join(
-                                [player_column_prefix(i, x), PLAYER_ASSISTS_COLUMN]
-                            ),
-                            field_goals_attempted_column=DELIMITER.join(
-                                [
-                                    player_column_prefix(i, x),
-                                    PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
-                                ]
-                            ),
-                            offensive_rebounds_column=DELIMITER.join(
-                                [
-                                    player_column_prefix(i, x),
-                                    PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
-                                ]
-                            ),
-                            turnovers_column=DELIMITER.join(
-                                [player_column_prefix(i, x), PLAYER_TURNOVERS_COLUMN]
-                            ),
-                            team_identifier_column=team_identifier_column(i),
-                        )
-                        for x in range(player_count)
-                    ]
-                )
-            return process(
-                df,
-                GAME_DT_COLUMN,
-                identifiers,
-                [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
+                    for x in range(player_count)
+                ]
             )
-        return self._features.process(df)
+        return process(
+            df,
+            GAME_DT_COLUMN,
+            identifiers,
+            [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
+        )
