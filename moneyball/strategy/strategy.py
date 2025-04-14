@@ -2,6 +2,7 @@
 
 # pylint: disable=too-many-statements
 import datetime
+import logging
 import multiprocessing
 import os
 import pickle
@@ -163,7 +164,7 @@ class Strategy:
                     index.append(date)
 
                     # Find the kelly criterion for each bet
-                    fs = []
+                    fs: list[float] = []
                     for _, row in group.iterrows():
                         row_df = row.to_frame().T
                         row_df = row_df[
@@ -174,7 +175,12 @@ class Strategy:
                         arr = row_df.to_numpy().flatten()
                         team_idx = np.argmax(arr)
                         prob = arr[team_idx]
-                        odds = row[f"teams/{team_idx}_odds"]
+                        odds_col = f"teams/{team_idx}_odds"
+                        if odds_col not in row:
+                            logging.warning("Could not find %s in row", odds_col)
+                            fs = []
+                            break
+                        odds = row[odds_col]
                         bet_prob = 1.0 / odds
                         f = max(prob - ((1.0 - prob) / bet_prob), 0.0) * kelly_ratio
                         fs.append(f)
