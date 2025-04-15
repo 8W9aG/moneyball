@@ -155,6 +155,7 @@ class Strategy:
             prob_col = "_".join(
                 [HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX]  # type: ignore
             )
+            odds_cols = [f"teams/{x}_odds" for x in range(len(points_cols))]
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
                 index = []
@@ -175,11 +176,10 @@ class Strategy:
                         arr = row_df.to_numpy().flatten()
                         team_idx = np.argmax(arr)
                         prob = arr[team_idx]
-                        odds_col = f"teams/{team_idx}_odds"
+                        odds_col = odds_cols[team_idx]
                         if odds_col not in row:
                             logging.warning("Could not find %s in row", odds_col)
-                            fs = []
-                            break
+                            continue
                         odds = row[odds_col]
                         bet_prob = 1.0 / odds
                         f = max(prob - ((1.0 - prob) / bet_prob), 0.0) * kelly_ratio
@@ -196,7 +196,7 @@ class Strategy:
                     for _, row in group.iterrows():
                         row_df = row.to_frame().T
                         points_df = row_df[points_cols]
-                        odds_df = row_df[main_df.attrs[str(FieldType.ODDS)]]
+                        odds_df = row_df[odds_cols]
                         row_df = row_df[
                             [x for x in row_df.columns.values if x.startswith(prob_col)]
                         ]
@@ -205,9 +205,7 @@ class Strategy:
                         arr = row_df.to_numpy().flatten()
                         team_idx = np.argmax(arr)
                         win_team_idx = np.argmax(points_df.to_numpy().flatten())
-                        odds = list(
-                            odds_df[main_df.attrs[str(FieldType.ODDS)][team_idx]].values
-                        )[0]
+                        odds = odds_df[odds_cols[win_team_idx]].iloc[0]
                         if team_idx == win_team_idx:
                             pl += odds * fs[bet_idx]
                         else:
