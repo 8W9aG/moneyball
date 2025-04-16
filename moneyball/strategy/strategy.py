@@ -195,6 +195,14 @@ class Strategy:
                     pl = 0.0
                     for _, row in group.iterrows():
                         row_df = row.to_frame().T
+                        process_row = True
+                        for col in points_cols + odds_cols:
+                            if col not in row_df.columns.values:
+                                logging.warning("Could not find %s in row", col)
+                                process_row = False
+                                break
+                        if not process_row:
+                            continue
                         points_df = row_df[points_cols]
                         odds_df = row_df[odds_cols]
                         row_df = row_df[
