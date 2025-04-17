@@ -13,6 +13,8 @@ import pandas as pd
 import pytz
 import wavetrainer as wt  # type: ignore
 from joblib import parallel_backend  # type: ignore
+from sportsball.data.address_model import (ADDRESS_LATITUDE_COLUMN,
+                                           ADDRESS_LONGITUDE_COLUMN)
 from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import VENUE_COLUMN_PREFIX
@@ -35,6 +37,7 @@ from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
                                         FIELD_GOALS_COLUMN,
                                         OFFENSIVE_REBOUNDS_COLUMN,
                                         TURNOVERS_COLUMN)
+from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.process import process  # type: ignore
@@ -149,77 +152,36 @@ class Strategy:
         returns = self._returns
         if returns is None:
             df = self.predict()
-            dt_column = DELIMITER.join([GAME_DT_COLUMN])
             points_cols = main_df.attrs[str(FieldType.POINTS)]
             prob_col = "_".join(
                 [HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX]  # type: ignore
             )
             odds_cols = [f"teams/{x}_odds" for x in range(len(points_cols))]
+            prob_cols = [x for x in df.columns.values if x.startswith(prob_col)]
+            probs = df[prob_cols].to_numpy()
+            odds = df[odds_cols].to_numpy()
+            points = df[points_cols].to_numpy()
+            best_idx = probs.argmax(axis=1)
+            wins_idx = points.argmax(axis=1)
+            p = probs[np.arange(len(df)), best_idx]
+            o = odds[np.arange(len(df)), best_idx]
+            b = o - 1.0
+            q = 1.0 - p
+            kelly_fraction = (b * p - q) / b
+            kelly_fraction = np.clip(kelly_fraction, 0, 1)
+            df["kelly_fraction"] = kelly_fraction
+            df["bet_won"] = best_idx == wins_idx
+            df["bet_odds"] = odds
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
-                index = []
-                data = []
-                for date, group in df.groupby([df[dt_column].dt.date]):
-                    dt = date[0]
-                    index.append(dt)
-
-                    # Find the kelly criterion for each bet
-                    fs: list[float] = []
-                    for _, row in group.iterrows():
-                        row_df = row.to_frame().T
-                        row_df = row_df[
-                            [x for x in row_df.columns.values if x.startswith(prob_col)]
-                        ]
-                        if row_df.isnull().values.any():
-                            continue
-                        arr = row_df.to_numpy().flatten()
-                        team_idx = np.argmax(arr)
-                        prob = arr[team_idx]
-                        odds_col = odds_cols[team_idx]
-                        if odds_col not in row:
-                            continue
-                        odds = row[odds_col]
-                        bet_prob = 1.0 / odds
-                        f = max(prob - ((1.0 - prob) / bet_prob), 0.0) * kelly_ratio
-                        fs.append(f)
-
-                    # Make sure we aren't overallocating our capital
-                    fs_sum = sum(fs)
-                    if fs_sum > 1.0:
-                        fs = [x / fs_sum for x in fs]
-
-                    # Simulate the bets
-                    bet_idx = 0
-                    pl = 0.0
-                    for _, row in group.iterrows():
-                        row_df = row.to_frame().T
-                        process_row = True
-                        for col in points_cols + odds_cols:
-                            if col not in row_df.columns.values:
-                                process_row = False
-                                break
-                        if not process_row:
-                            continue
-                        points_df = row_df[points_cols]
-                        odds_df = row_df[odds_cols]
-                        row_df = row_df[
-                            [x for x in row_df.columns.values if x.startswith(prob_col)]
-                        ]
-                        if row_df.isnull().values.any():
-                            continue
-                        arr = row_df.to_numpy().flatten()
-                        team_idx = np.argmax(arr)
-                        win_team_idx = np.argmax(points_df.to_numpy().flatten())
-                        odds = odds_df[odds_cols[win_team_idx]].iloc[0]
-                        if team_idx == win_team_idx:
-                            pl += odds * fs[bet_idx]
-                        else:
-                            pl -= fs[bet_idx]
-                        bet_idx += 1
-
-                    data.append(pl)
-
-                return pd.Series(index=index, data=data, name=self._name)
+                df["kelly_fraction_ratio"] = df["kelly_fraction"] * kelly_ratio
+                df["return_multiplier"] = np.where(
+                    df["bet_won"],
+                    1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
+                    1 - df["kelly_fraction"],
+                )
+                df["cumulative_return"] = df["return_multiplier"].cumprod()
+                return df["cumulative_return"].rename(self._name)
 
             def objective(trial: optuna.Trial) -> float:
                 ret = calculate_returns(trial.suggest_float("kelly_ratio", 0.0, 2.0))
@@ -261,6 +223,16 @@ class Strategy:
                 venue_identifier_column(),
                 [],
                 VENUE_COLUMN_PREFIX,
+                latitude_column=DELIMITER.join(
+                    [VENUE_COLUMN_PREFIX, VENUE_ADDRESS_COLUMN, ADDRESS_LATITUDE_COLUMN]
+                ),
+                longitude_column=DELIMITER.join(
+                    [
+                        VENUE_COLUMN_PREFIX,
+                        VENUE_ADDRESS_COLUMN,
+                        ADDRESS_LONGITUDE_COLUMN,
+                    ]
+                ),
             )
         ]
         for i in range(team_count):
