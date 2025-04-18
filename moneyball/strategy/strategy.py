@@ -20,8 +20,7 @@ from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import VENUE_COLUMN_PREFIX
 from sportsball.data.league_model import DELIMITER  # type: ignore
-from sportsball.data.odds_model import (DT_COLUMN, ODDS_BOOKIE_COLUMN,
-                                        ODDS_ODDS_COLUMN)
+from sportsball.data.odds_model import DT_COLUMN, ODDS_BOOKIE_COLUMN
 from sportsball.data.player_model import \
     ASSISTS_COLUMN as PLAYER_ASSISTS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
@@ -47,10 +46,11 @@ from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.process import process  # type: ignore
 
 from .features.columns import (find_odds_count, find_player_count,
-                               find_team_count, odds_identifier_column,
-                               player_column_prefix, player_identifier_column,
-                               team_column_prefix, team_identifier_column,
-                               team_points_column, venue_identifier_column)
+                               find_team_count, odds_column_prefix,
+                               odds_odds_column, player_column_prefix,
+                               player_identifier_column, team_column_prefix,
+                               team_identifier_column, team_points_column,
+                               venue_identifier_column)
 
 HOME_WIN_COLUMN = "home_win"
 
@@ -275,18 +275,16 @@ class Strategy:
                     ),
                     bets=[
                         Bet(
-                            odds_column=DELIMITER.join(
-                                [odds_identifier_column(i, x), ODDS_ODDS_COLUMN]
-                            ),
+                            odds_column=odds_odds_column(i, x),
                             bookie_id_column=DELIMITER.join(
                                 [
-                                    odds_identifier_column(i, x),
+                                    odds_column_prefix(i, x),
                                     ODDS_BOOKIE_COLUMN,
                                     BOOKIE_IDENTIFIER_COLUMN,
                                 ]
                             ),
                             dt_column=DELIMITER.join(
-                                [odds_identifier_column(i, x), DT_COLUMN]
+                                [odds_column_prefix(i, x), DT_COLUMN]
                             ),
                         )
                         for x in range(find_odds_count(df, i))

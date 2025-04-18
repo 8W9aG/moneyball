@@ -5,6 +5,7 @@ from sportsball.data.game_model import GAME_ATTENDANCE_COLUMN  # type: ignore
 from sportsball.data.game_model import (GAME_WEEK_COLUMN, TEAM_COLUMN_PREFIX,
                                         VENUE_COLUMN_PREFIX)
 from sportsball.data.league_model import DELIMITER  # type: ignore
+from sportsball.data.odds_model import ODDS_ODDS_COLUMN
 from sportsball.data.player_model import PLAYER_KICKS_COLUMN  # type: ignore
 from sportsball.data.player_model import (PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_IDENTIFIER_COLUMN)
@@ -118,11 +119,16 @@ def week_column() -> str:
     return DELIMITER.join([GAME_WEEK_COLUMN])
 
 
-def odds_identifier_column(team_idx: int, odds_idx: int) -> str:
-    """Generates an odds identifier column."""
+def odds_column_prefix(team_idx: int, odds_idx: int) -> str:
+    """Generates an odds column_prefix."""
     return DELIMITER.join(
         [team_column_prefix(team_idx), TEAM_ODDS_COLUMN, str(odds_idx)]
     )
+
+
+def odds_odds_column(team_idx: int, odds_idx: int) -> str:
+    """Generates an odds odds column."""
+    return DELIMITER.join([odds_column_prefix(team_idx, odds_idx), ODDS_ODDS_COLUMN])
 
 
 def find_odds_count(df: pd.DataFrame, team_count: int) -> int:
@@ -131,7 +137,7 @@ def find_odds_count(df: pd.DataFrame, team_count: int) -> int:
     while True:
         found_player = False
         for i in range(team_count):
-            if odds_identifier_column(i, odds_count) not in df.columns.values:
+            if odds_odds_column(i, odds_count) not in df.columns.values:
                 continue
             found_player = True
         if not found_player:
