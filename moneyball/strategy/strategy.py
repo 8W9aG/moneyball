@@ -15,10 +15,13 @@ import wavetrainer as wt  # type: ignore
 from joblib import parallel_backend  # type: ignore
 from sportsball.data.address_model import (ADDRESS_LATITUDE_COLUMN,
                                            ADDRESS_LONGITUDE_COLUMN)
+from sportsball.data.bookie_model import BOOKIE_IDENTIFIER_COLUMN
 from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import VENUE_COLUMN_PREFIX
 from sportsball.data.league_model import DELIMITER  # type: ignore
+from sportsball.data.odds_model import (DT_COLUMN, ODDS_BOOKIE_COLUMN,
+                                        ODDS_ODDS_COLUMN)
 from sportsball.data.player_model import \
     ASSISTS_COLUMN as PLAYER_ASSISTS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
@@ -38,11 +41,13 @@ from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
                                         OFFENSIVE_REBOUNDS_COLUMN,
                                         TURNOVERS_COLUMN)
 from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
+from sportsfeatures.bet import Bet
 from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.process import process  # type: ignore
 
-from .features.columns import (find_player_count, find_team_count,
+from .features.columns import (find_odds_count, find_player_count,
+                               find_team_count, odds_identifier_column,
                                player_column_prefix, player_identifier_column,
                                team_column_prefix, team_identifier_column,
                                team_points_column, venue_identifier_column)
@@ -268,6 +273,24 @@ class Strategy:
                     turnovers_column=DELIMITER.join(
                         [team_column_prefix(i), TURNOVERS_COLUMN]
                     ),
+                    bets=[
+                        Bet(
+                            odds_column=DELIMITER.join(
+                                [odds_identifier_column(i, x), ODDS_ODDS_COLUMN]
+                            ),
+                            bookie_id_column=DELIMITER.join(
+                                [
+                                    odds_identifier_column(i, x),
+                                    ODDS_BOOKIE_COLUMN,
+                                    BOOKIE_IDENTIFIER_COLUMN,
+                                ]
+                            ),
+                            dt_column=DELIMITER.join(
+                                [odds_identifier_column(i, x), DT_COLUMN]
+                            ),
+                        )
+                        for x in range(find_odds_count(df, i))
+                    ],
                 )
             )
             player_count = find_player_count(df, i)

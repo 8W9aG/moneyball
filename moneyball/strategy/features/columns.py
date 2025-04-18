@@ -10,7 +10,7 @@ from sportsball.data.player_model import (PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_IDENTIFIER_COLUMN)
 from sportsball.data.team_model import PLAYER_COLUMN_PREFIX  # type: ignore
 from sportsball.data.team_model import (NAME_COLUMN, TEAM_IDENTIFIER_COLUMN,
-                                        TEAM_POINTS_COLUMN)
+                                        TEAM_ODDS_COLUMN, TEAM_POINTS_COLUMN)
 from sportsball.data.venue_model import VENUE_IDENTIFIER_COLUMN  # type: ignore
 
 
@@ -116,3 +116,25 @@ def fumbles_lost_column(team_idx: int, player_idx: int) -> str:
 def week_column() -> str:
     """Generate a week column."""
     return DELIMITER.join([GAME_WEEK_COLUMN])
+
+
+def odds_identifier_column(team_idx: int, odds_idx: int) -> str:
+    """Generates an odds identifier column."""
+    return DELIMITER.join(
+        [team_column_prefix(team_idx), TEAM_ODDS_COLUMN, str(odds_idx)]
+    )
+
+
+def find_odds_count(df: pd.DataFrame, team_count: int) -> int:
+    """Find the number of players in a team in the dataframe."""
+    odds_count = 0
+    while True:
+        found_player = False
+        for i in range(team_count):
+            if odds_identifier_column(i, odds_count) not in df.columns.values:
+                continue
+            found_player = True
+        if not found_player:
+            break
+        odds_count += 1
+    return odds_count
