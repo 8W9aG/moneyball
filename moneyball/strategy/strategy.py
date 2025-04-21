@@ -240,6 +240,7 @@ class Strategy:
                 ),
             )
         ]
+        odds_count = find_odds_count(df, team_count)
         for i in range(team_count):
             identifiers.append(
                 Identifier(
@@ -287,7 +288,7 @@ class Strategy:
                                 [odds_column_prefix(i, x), DT_COLUMN]
                             ),
                         )
-                        for x in range(find_odds_count(df, i))
+                        for x in range(odds_count)
                     ],
                 )
             )

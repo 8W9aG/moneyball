@@ -135,12 +135,12 @@ def find_odds_count(df: pd.DataFrame, team_count: int) -> int:
     """Find the number of players in a team in the dataframe."""
     odds_count = 0
     while True:
-        found_player = False
+        found_odds = False
         for i in range(team_count):
             if odds_odds_column(i, odds_count) not in df.columns.values:
                 continue
-            found_player = True
-        if not found_player:
+            found_odds = True
+        if not found_odds:
             break
         odds_count += 1
     return odds_count
