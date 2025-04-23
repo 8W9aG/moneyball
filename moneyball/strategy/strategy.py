@@ -146,7 +146,10 @@ class Strategy:
         training_cols = df.attrs[str(FieldType.POINTS)]
         x_df = x_df.drop(columns=training_cols, errors="ignore")
         x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
-        return self._wt.transform(x_df)
+        x_df = self._wt.transform(x_df)
+        for points_col in df.attrs[str(FieldType.POINTS)]:
+            x_df[points_col] = df[points_col]
+        return x_df
 
     def returns(self) -> pd.Series:
         """Render the returns of the strategy."""
