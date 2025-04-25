@@ -30,18 +30,6 @@ from sportsball.data.player_model import \
     FIELD_GOALS_COLUMN as PLAYER_FIELD_GOALS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
-from sportsball.data.player_model import (  # type: ignore
-    PLAYER_BEHINDS_COLUMN, PLAYER_BOUNCES_COLUMN, PLAYER_BROWNLOW_VOTES_COLUMN,
-    PLAYER_CLANGERS_COLUMN, PLAYER_CLEARANCES_COLUMN,
-    PLAYER_CONTESTED_MARKS_COLUMN, PLAYER_CONTESTED_POSSESSIONS_COLUMN,
-    PLAYER_DISPOSALS_COLUMN, PLAYER_FREE_KICKS_AGAINST_COLUMN,
-    PLAYER_FREE_KICKS_FOR_COLUMN, PLAYER_FUMBLES_COLUMN,
-    PLAYER_FUMBLES_LOST_COLUMN, PLAYER_GOAL_ASSISTS_COLUMN,
-    PLAYER_GOALS_COLUMN, PLAYER_HANDBALLS_COLUMN, PLAYER_HIT_OUTS_COLUMN,
-    PLAYER_INSIDES_COLUMN, PLAYER_KICKS_COLUMN, PLAYER_MARKS_COLUMN,
-    PLAYER_MARKS_INSIDE_COLUMN, PLAYER_ONE_PERCENTERS_COLUMN,
-    PLAYER_PERCENTAGE_PLAYED_COLUMN, PLAYER_REBOUNDS_COLUMN,
-    PLAYER_TACKLES_COLUMN, PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -352,41 +340,7 @@ class Strategy:
                     Identifier(
                         EntityType.PLAYER,
                         player_identifier_column(i, x),
-                        [
-                            DELIMITER.join([player_column_prefix(i, x), y])
-                            for y in [
-                                PLAYER_KICKS_COLUMN,
-                                PLAYER_FUMBLES_COLUMN,
-                                PLAYER_FUMBLES_LOST_COLUMN,
-                                PLAYER_FIELD_GOALS_COLUMN,
-                                PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
-                                PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
-                                PLAYER_ASSISTS_COLUMN,
-                                PLAYER_TURNOVERS_COLUMN,
-                                PLAYER_MARKS_COLUMN,
-                                PLAYER_HANDBALLS_COLUMN,
-                                PLAYER_DISPOSALS_COLUMN,
-                                PLAYER_GOALS_COLUMN,
-                                PLAYER_BEHINDS_COLUMN,
-                                PLAYER_HIT_OUTS_COLUMN,
-                                PLAYER_TACKLES_COLUMN,
-                                PLAYER_REBOUNDS_COLUMN,
-                                PLAYER_INSIDES_COLUMN,
-                                PLAYER_CLEARANCES_COLUMN,
-                                PLAYER_CLANGERS_COLUMN,
-                                PLAYER_FREE_KICKS_FOR_COLUMN,
-                                PLAYER_FREE_KICKS_AGAINST_COLUMN,
-                                PLAYER_BROWNLOW_VOTES_COLUMN,
-                                PLAYER_CONTESTED_POSSESSIONS_COLUMN,
-                                PLAYER_UNCONTESTED_POSSESSIONS_COLUMN,
-                                PLAYER_CONTESTED_MARKS_COLUMN,
-                                PLAYER_MARKS_INSIDE_COLUMN,
-                                PLAYER_ONE_PERCENTERS_COLUMN,
-                                PLAYER_BOUNCES_COLUMN,
-                                PLAYER_GOAL_ASSISTS_COLUMN,
-                                PLAYER_PERCENTAGE_PLAYED_COLUMN,
-                            ]
-                        ],
+                        [],
                         player_column_prefix(i, x),
                         points_column=team_points_column(i),
                         field_goals_column=DELIMITER.join(
