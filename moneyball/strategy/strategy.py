@@ -197,7 +197,7 @@ class Strategy:
             kelly_fraction = np.clip(kelly_fraction, 0, 1)
             df["kelly_fraction"] = kelly_fraction
             df["bet_won"] = best_idx == wins_idx
-            df["bet_odds"] = odds
+            df["bet_odds"] = o
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
                 df["kelly_fraction_ratio"] = df["kelly_fraction"] * kelly_ratio
