@@ -182,3 +182,4 @@ test_pytest_portfolio
 test_*
 catboost_info
 .sportsfeatures*
+tmp.csv

@@ -160,6 +160,7 @@ class Strategy:
         df = self.df
         if df is None:
             raise ValueError("df is null.")
+
         x_df = self._process()
         training_cols = df.attrs[str(FieldType.POINTS)]
         x_df = x_df.drop(columns=training_cols, errors="ignore")
@@ -174,6 +175,7 @@ class Strategy:
         main_df = self.df
         if main_df is None:
             raise ValueError("main_df is null.")
+        main_df = main_df.copy()
 
         returns = self._returns
         if returns is None:
@@ -186,7 +188,7 @@ class Strategy:
             prob_cols = [x for x in df.columns.values if x.startswith(prob_col)]
             probs = df[prob_cols].to_numpy()
             odds = df[odds_cols].to_numpy()
-            points = df[points_cols].to_numpy()
+            points = main_df[points_cols].to_numpy()
             best_idx = probs.argmax(axis=1)
             wins_idx = points.argmax(axis=1)
             p = probs[np.arange(len(df)), best_idx]
@@ -199,6 +201,7 @@ class Strategy:
             df["bet_won"] = best_idx == wins_idx
             df["bet_odds"] = o
             df = df.dropna(subset=["kelly_fraction", "bet_won", "bet_odds"])
+            df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
                 df["kelly_fraction_ratio"] = df["kelly_fraction"] * kelly_ratio
