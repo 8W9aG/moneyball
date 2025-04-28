@@ -124,12 +124,15 @@ class Strategy:
     @property
     def df(self) -> pd.DataFrame | None:
         """Fetch the dataframe currently being operated on."""
-        return self._df
+        df = self._df
+        if df is None:
+            return None
+        return df.sort_values(by=DT_COLUMN, ascending=True)
 
     @df.setter
     def df(self, df: pd.DataFrame) -> None:
         """Set the dataframe."""
-        self._df = df
+        self._df = df.sort_values(by=DT_COLUMN, ascending=True)
         df.to_parquet(os.path.join(self._name, _DF_FILENAME), compression="gzip")
 
     @property
