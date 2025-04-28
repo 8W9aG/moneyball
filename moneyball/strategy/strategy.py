@@ -198,6 +198,7 @@ class Strategy:
             df["kelly_fraction"] = kelly_fraction
             df["bet_won"] = best_idx == wins_idx
             df["bet_odds"] = o
+            df = df.dropna(subset=["kelly_fraction", "bet_won", "bet_odds"])
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
                 df["kelly_fraction_ratio"] = df["kelly_fraction"] * kelly_ratio
