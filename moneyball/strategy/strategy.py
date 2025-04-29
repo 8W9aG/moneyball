@@ -184,11 +184,14 @@ class Strategy:
         if returns is None:
             df = self.predict()
             points_cols = main_df.attrs[str(FieldType.POINTS)]
+            points_cols = [team_points_column(x) for x in range(len(points_cols))]
             prob_col = "_".join(
                 [HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX]  # type: ignore
             )
             odds_cols = [f"teams/{x}_odds" for x in range(len(points_cols))]
             prob_cols = [x for x in df.columns.values if x.startswith(prob_col)]
+            df[points_cols] = main_df[points_cols].to_numpy()
+            df = df[df[GAME_DT_COLUMN].dt.year >= datetime.datetime.now().year - 1]
             probs = df[prob_cols].to_numpy()
             odds = df[odds_cols].to_numpy()
             points = main_df[points_cols].to_numpy()
