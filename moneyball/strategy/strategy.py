@@ -194,7 +194,7 @@ class Strategy:
             df = df[df[GAME_DT_COLUMN].dt.year >= datetime.datetime.now().year - 1]
             probs = df[prob_cols].to_numpy()
             odds = df[odds_cols].to_numpy()
-            points = main_df[points_cols].to_numpy()
+            points = df[points_cols].to_numpy()
             best_idx = probs.argmax(axis=1)
             wins_idx = points.argmax(axis=1)
             p = probs[np.arange(len(df)), best_idx]
