@@ -211,13 +211,15 @@ class Strategy:
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
                 df["kelly_fraction_ratio"] = df["kelly_fraction"] * kelly_ratio
-                df["return_multiplier"] = np.where(
-                    df["bet_won"],
-                    1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
-                    1 - df["kelly_fraction"],
+                df["return_multiplier"] = (
+                    np.where(
+                        df["bet_won"],
+                        1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
+                        1 - df["kelly_fraction"],
+                    )
+                    - 1.0
                 )
-                df["cumulative_return"] = df["return_multiplier"].cumprod()
-                return df["cumulative_return"].rename(self._name)
+                return df["return_multiplier"].rename(self._name)
 
             def objective(trial: optuna.Trial) -> float:
                 ret = calculate_returns(trial.suggest_float("kelly_ratio", 0.0, 2.0))
