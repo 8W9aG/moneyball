@@ -7,4 +7,4 @@ try:
 except ImportError:
     pass
 
-__VERSION__ = "0.0.58"
+__VERSION__ = "0.0.59"

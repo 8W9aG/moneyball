@@ -140,7 +140,7 @@ class Portfolio:
                             }
                             for x in range(team_count)
                         ],
-                        "dt": row[GAME_DT_COLUMN],
+                        "dt": row[GAME_DT_COLUMN].isoformat(),
                     }
                 )
         return bets
