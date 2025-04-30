@@ -236,6 +236,7 @@ class Strategy:
                 )
 
             returns = calculate_returns(self.kelly_ratio)
+            returns = pd.Series(index=df[GAME_DT_COLUMN], data=returns.to_numpy())
             self._returns = returns
         return returns
 
