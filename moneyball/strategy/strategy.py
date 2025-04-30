@@ -219,7 +219,11 @@ class Strategy:
                     )
                     - 1.0
                 )
-                return df["return_multiplier"].rename(self._name)
+                return (
+                    df.groupby(df[GAME_DT_COLUMN].dt.date)["return_multiplier"]
+                    .sum()
+                    .rename(self._name)
+                )
 
             def objective(trial: optuna.Trial) -> float:
                 ret = calculate_returns(trial.suggest_float("kelly_ratio", 0.0, 2.0))
@@ -236,7 +240,6 @@ class Strategy:
                 )
 
             returns = calculate_returns(self.kelly_ratio)
-            returns = pd.Series(index=df[GAME_DT_COLUMN], data=returns.to_numpy())
             self._returns = returns
         return returns
 
