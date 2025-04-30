@@ -89,7 +89,6 @@ def main() -> None:
                 )
             portfolio = Portfolio(args.name)
             bets = portfolio.next_bets()
-            logging.info(bets)
             sys.stdout.write(json.dumps(bets))
         case _:
             raise ValueError(f"Unrecognised function: {args.function}")

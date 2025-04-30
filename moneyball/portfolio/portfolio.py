@@ -14,8 +14,11 @@ import wavetrainer as wt  # type: ignore
 from fullmonte import plot, simulate  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import LEAGUE_COLUMN
+from sportsball.data.league_model import DELIMITER
 
-from ..strategy.features.columns import find_team_count, team_name_column
+from ..strategy.features.columns import (find_player_count, find_team_count,
+                                         player_column_prefix,
+                                         team_name_column)
 from ..strategy.strategy import HOME_WIN_COLUMN, Strategy
 from .next_bets import NextBets
 
@@ -84,7 +87,10 @@ class Portfolio:
                     for col in returns:
                         ret.loc[index, col] *= weights[col]  # type: ignore
                         total_ret += ret.loc[index, col]  # type: ignore
+                        self._weights[str(col)] = weights[col]
                     ret.loc[index, self._name] = total_ret
+        else:
+            self._weights[returns.columns.values[0]] = 1.0
 
         ret = ret.asfreq("D").fillna(0.0)
         ret.index = ret.index.tz_localize("UTC")  # type: ignore
@@ -137,6 +143,16 @@ class Portfolio:
                             {
                                 "name": row[team_name_column(x)],
                                 "probability": row[prob_col + str(x)],
+                                "players": [
+                                    {
+                                        "name": row[
+                                            DELIMITER.join(
+                                                [player_column_prefix(x, y), "name"]
+                                            )
+                                        ]
+                                    }
+                                    for y in range(find_player_count(next_df, x))
+                                ],
                             }
                             for x in range(team_count)
                         ],
