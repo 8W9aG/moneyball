@@ -247,8 +247,8 @@ class Strategy:
         """Find the next predictions for betting."""
         dt_column = DELIMITER.join([GAME_DT_COLUMN])
         df = self.predict()
-        start_dt = datetime.datetime.now()
-        end_dt = start_dt + datetime.timedelta(days=1.0)
+        start_dt = datetime.datetime.now(datetime.timezone.utc)
+        end_dt = start_dt + datetime.timedelta(days=3.0)
         df = df[df[dt_column] > start_dt]
         df = df[df[dt_column] <= end_dt]
         return df

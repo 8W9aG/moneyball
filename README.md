@@ -15,7 +15,6 @@ A library for determining what bets to make.
 Python 3.11.6:
 
 - [pandas](https://pandas.pydata.org/)
-- [empyrical](https://github.com/quantopian/empyrical)
 - [numpy](https://numpy.org/)
 - [optuna](https://optuna.readthedocs.io/en/stable/)
 - [pytz](https://pythonhosted.org/pytz/)
@@ -32,6 +31,7 @@ Python 3.11.6:
 - [wavetrainer](https://github.com/8W9aG/wavetrainer)
 - [riskfolio](https://github.com/dcajasn/Riskfolio-Lib)
 - [sports-features](https://github.com/8W9aG/sports-features)
+- [empyrical-reloaded](https://empyrical.ml4trading.io/)
 
 ## Raison D'être :thought_balloon:
 

@@ -62,27 +62,29 @@ class Portfolio:
         # pylint: disable=unsubscriptable-object
         returns = pd.DataFrame([x.returns() for x in self._strategies]).T.fillna(0.0)
         returns.index = pd.to_datetime(returns.index)  # pyright: ignore
+        returns.to_parquet(os.path.join(self._name, "returns.parquet"))
 
         # Walkforward sharpe optimization
         ret = returns.copy()
-        ret[self._name] = np.NaN
-        for index in returns.index:
-            dt = index
-            x = returns[returns.index < dt]
-            if x.empty or len(np.unique(x)) < 10:
-                ret.loc[index, self._name] = (
-                    returns.loc[index] * (1.0 / len(returns.columns.values))
-                ).sum()
-            else:
-                port = rp.Portfolio(returns=returns)
-                weights = port.optimization(
-                    model="Classic", rm="MV", obj="MaxRet", hist=True
-                )
-                total_ret = 0.0
-                for col in returns:
-                    ret.loc[index, col] *= weights[col]  # type: ignore
-                    total_ret += ret.loc[index, col]  # type: ignore
-                ret.loc[index, self._name] = total_ret
+        if len(returns.columns.values) > 1:
+            ret[self._name] = np.nan
+            for index in returns.index:
+                dt = index
+                x = returns[returns.index < dt]
+                if x.empty or len(np.unique(x)) < 10:
+                    ret.loc[index, self._name] = (
+                        returns.loc[index] * (1.0 / len(returns.columns.values))
+                    ).sum()
+                else:
+                    port = rp.Portfolio(returns=returns)
+                    weights = port.optimization(
+                        model="Classic", rm="MV", obj="MaxRet", hist=True
+                    )
+                    total_ret = 0.0
+                    for col in returns:
+                        ret.loc[index, col] *= weights[col]  # type: ignore
+                        total_ret += ret.loc[index, col]  # type: ignore
+                    ret.loc[index, self._name] = total_ret
 
         ret = ret.asfreq("D").fillna(0.0)
         ret.index = ret.index.tz_localize("UTC")  # type: ignore
@@ -134,7 +136,7 @@ class Portfolio:
                         "teams": [
                             {
                                 "name": row[team_name_column(x)],
-                                "probability": row[prob_col + "_" + str(x)],
+                                "probability": row[prob_col + str(x)],
                             }
                             for x in range(team_count)
                         ],
