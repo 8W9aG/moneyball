@@ -61,7 +61,7 @@ class Portfolio:
         """Fits the portfolio to the strategies."""
         # pylint: disable=unsubscriptable-object
         returns = pd.DataFrame([x.returns() for x in self._strategies]).T.fillna(0.0)
-        returns.index = pd.to_datetime(returns[GAME_DT_COLUMN])  # pyright: ignore
+        returns.index = pd.to_datetime(returns.index)  # pyright: ignore
 
         # Walkforward sharpe optimization
         ret = returns.copy()
