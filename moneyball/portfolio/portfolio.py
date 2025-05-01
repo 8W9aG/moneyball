@@ -131,7 +131,11 @@ class Portfolio:
         prob_col = "_".join([HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX])  # type: ignore
         for strategy in self._strategies:
             next_df = strategy.next()
+            next_df.to_parquet(
+                os.path.join(self._name, f"next_df_{strategy.name}.parquet")
+            )
             team_count = find_team_count(next_df)
+            player_count = find_player_count(next_df, team_count)
             for _, row in next_df.iterrows():
                 bets["bets"].append(
                     {
@@ -151,7 +155,7 @@ class Portfolio:
                                             )
                                         ]
                                     }
-                                    for y in range(find_player_count(next_df, x))
+                                    for y in range(player_count)
                                 ],
                             }
                             for x in range(team_count)
