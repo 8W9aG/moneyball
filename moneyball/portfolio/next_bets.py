@@ -6,7 +6,5 @@ from .bet import Bet
 
 NextBets = TypedDict(
     "NextBets",
-    {
-        "bets": list[Bet],
-    },
+    {"bets": list[Bet], "feature_importances": dict[str, dict[str, dict[str, float]]]},
 )

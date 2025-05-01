@@ -127,10 +127,11 @@ class Portfolio:
 
     def next_bets(self) -> NextBets:
         """Find the strategies next bet information."""
-        bets: NextBets = {"bets": []}
+        bets: NextBets = {"bets": [], "feature_importances": {}}
         prob_col = "_".join([HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX])  # type: ignore
         for strategy in self._strategies:
-            next_df = strategy.next()
+            next_df, feature_importances = strategy.next()
+            bets["feature_importances"][strategy.name] = feature_importances
             next_df.to_parquet(
                 os.path.join(self._name, f"next_df_{strategy.name}.parquet")
             )
