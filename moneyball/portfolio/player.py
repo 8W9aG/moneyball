@@ -6,5 +6,6 @@ Player = TypedDict(
     "Player",
     {
         "name": str,
+        "identifier": str,
     },
 )

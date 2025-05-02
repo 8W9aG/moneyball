@@ -2,7 +2,6 @@
 
 # pylint: disable=too-many-statements
 import datetime
-import multiprocessing
 import os
 import pickle
 
@@ -12,7 +11,6 @@ import optuna
 import pandas as pd
 import pytz
 import wavetrainer as wt  # type: ignore
-from joblib import parallel_backend  # type: ignore
 from sportsball.data.address_model import (ADDRESS_LATITUDE_COLUMN,
                                            ADDRESS_LONGITUDE_COLUMN)
 from sportsball.data.bookie_model import BOOKIE_IDENTIFIER_COLUMN
@@ -207,39 +205,49 @@ class Strategy:
             df["bet_won"] = best_idx == wins_idx
             df["bet_odds"] = o
             df = df.dropna(subset=["kelly_fraction", "bet_won", "bet_odds"])
+
+            def scale_fractions(group):
+                total = group["kelly_fraction"].sum()
+                if total > 1:
+                    scaling_factor = 1 / total
+                    group["adjusted_fraction"] = (
+                        group["kelly_fraction"] * scaling_factor
+                    )
+                else:
+                    group["adjusted_fraction"] = group["kelly_fraction"]
+                return group
+
+            df = df.groupby("date").apply(scale_fractions)
+
             df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
-                df["kelly_fraction_ratio"] = df["kelly_fraction"] * kelly_ratio
+                df["kelly_fraction_ratio"] = df["adjusted_fraction"] * kelly_ratio
                 df["return_multiplier"] = (
                     np.where(
                         df["bet_won"],
                         1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
-                        1 - df["kelly_fraction"],
+                        1 - df["adjusted_fraction"],
                     )
                     - 1.0
                 )
-                return (
-                    df.groupby(df[GAME_DT_COLUMN].dt.date)["return_multiplier"]
-                    .sum()
-                    .rename(self._name)
-                )
+                return df["return_multiplier"].rename(self._name)
 
             def objective(trial: optuna.Trial) -> float:
-                ret = calculate_returns(trial.suggest_float("kelly_ratio", 0.0, 2.0))
+                ret = calculate_returns(trial.suggest_float("kelly_ratio", 0.0, 1.0))
                 if abs(empyrical.max_drawdown(ret)) >= 1.0:
                     return 0.0
                 return empyrical.calmar_ratio(ret)  # type: ignore
 
-            with parallel_backend("multiprocessing"):
-                self._kelly_study.optimize(
-                    objective,
-                    n_trials=100,
-                    show_progress_bar=True,
-                    n_jobs=multiprocessing.cpu_count(),
-                )
+            self._kelly_study.optimize(
+                objective,
+                n_trials=max(100 - len(self._kelly_study.trials), 1),
+                show_progress_bar=True,
+            )
 
-            returns = calculate_returns(self.kelly_ratio)
+            returns = calculate_returns(
+                self._kelly_study.best_trial.suggest_float("kelly_ratio", 0.0, 1.0)
+            )
             self._returns = returns
         return returns
 

@@ -15,9 +15,12 @@ from fullmonte import plot, simulate  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import LEAGUE_COLUMN
 from sportsball.data.league_model import DELIMITER
+from sportsball.data.player_model import (PLAYER_IDENTIFIER_COLUMN,
+                                          PLAYER_NAME_COLUMN)
 
 from ..strategy.features.columns import (find_player_count, find_team_count,
                                          player_column_prefix,
+                                         team_identifier_column,
                                          team_name_column)
 from ..strategy.strategy import HOME_WIN_COLUMN, Strategy
 from .next_bets import NextBets
@@ -152,12 +155,24 @@ class Portfolio:
                                     {
                                         "name": row[
                                             DELIMITER.join(
-                                                [player_column_prefix(x, y), "name"]
+                                                [
+                                                    player_column_prefix(x, y),
+                                                    PLAYER_NAME_COLUMN,
+                                                ]
                                             )
-                                        ]
+                                        ],
+                                        "identifier": row[
+                                            DELIMITER.join(
+                                                [
+                                                    player_column_prefix(x, y),
+                                                    PLAYER_IDENTIFIER_COLUMN,
+                                                ]
+                                            )
+                                        ],
                                     }
                                     for y in range(player_count)
                                 ],
+                                "identifier": row[team_identifier_column(x)],
                             }
                             for x in range(team_count)
                         ],

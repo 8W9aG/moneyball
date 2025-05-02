@@ -6,5 +6,5 @@ from .player import Player
 
 Team = TypedDict(
     "Team",
-    {"name": str, "probability": float, "players": list[Player]},
+    {"name": str, "probability": float, "players": list[Player], "identifier": str},
 )
