@@ -398,4 +398,5 @@ class Strategy:
             GAME_DT_COLUMN,
             identifiers,
             [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
+            df.attrs[str(FieldType.CATEGORICAL)],
         )
