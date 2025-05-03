@@ -37,6 +37,11 @@ def main() -> None:
         required=False,
     )
     parser.add_argument(
+        "--output",
+        help="The file to use as the output.",
+        required=False,
+    )
+    parser.add_argument(
         "name",
         help="The name of the strategy/portfolio.",
     )
@@ -90,6 +95,9 @@ def main() -> None:
             portfolio = Portfolio(args.name)
             bets = portfolio.next_bets()
             sys.stdout.write(json.dumps(bets))
+            if args.output is not None:
+                with open(args.output, encoding="utf8") as handle:
+                    json.dump(bets, handle)
         case _:
             raise ValueError(f"Unrecognised function: {args.function}")
 
