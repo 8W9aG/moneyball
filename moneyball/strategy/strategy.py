@@ -2,6 +2,7 @@
 
 # pylint: disable=too-many-statements
 import datetime
+import hashlib
 import os
 import pickle
 
@@ -265,6 +266,12 @@ class Strategy:
         df = self.df
         if df is None:
             raise ValueError("df is null")
+
+        df_hash = hashlib.sha256(df.to_csv().encode()).hexdigest()
+        df_cache_path = os.path.join(self._name, f"processed_{df_hash}.parquet")
+        if os.path.exists(df_cache_path):
+            return pd.read_parquet(df_cache_path)
+
         team_count = find_team_count(df)
 
         identifiers = [
@@ -393,10 +400,12 @@ class Strategy:
                     for x in range(player_count)
                 ]
             )
-        return process(
+        df_processed = process(
             df,
             GAME_DT_COLUMN,
             identifiers,
             [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
             df.attrs[str(FieldType.CATEGORICAL)],
         )
+        df_processed.to_parquet(df_cache_path)
+        return df_processed
