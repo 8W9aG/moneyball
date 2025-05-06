@@ -29,6 +29,7 @@ from sportsball.data.player_model import \
     FIELD_GOALS_COLUMN as PLAYER_FIELD_GOALS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
+from sportsball.data.player_model import PLAYER_KICKS_COLUMN
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -218,7 +219,9 @@ class Strategy:
                     group["adjusted_fraction"] = group["kelly_fraction"]
                 return group
 
-            df = df.groupby("date").apply(scale_fractions)
+            df = df.groupby(df.columns[df.columns.values.tolist().index("dt")]).apply(
+                scale_fractions
+            )
 
             df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
 
@@ -371,7 +374,12 @@ class Strategy:
                     Identifier(
                         EntityType.PLAYER,
                         player_identifier_column(i, x),
-                        [],
+                        [
+                            DELIMITER.join([player_column_prefix(i, x), col])
+                            for col in [
+                                PLAYER_KICKS_COLUMN,
+                            ]
+                        ],
                         player_column_prefix(i, x),
                         points_column=team_points_column(i),
                         field_goals_column=DELIMITER.join(
