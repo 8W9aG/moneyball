@@ -29,7 +29,8 @@ from sportsball.data.player_model import \
     FIELD_GOALS_COLUMN as PLAYER_FIELD_GOALS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
-from sportsball.data.player_model import PLAYER_KICKS_COLUMN
+from sportsball.data.player_model import (PLAYER_FUMBLES_COLUMN,
+                                          PLAYER_KICKS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -378,6 +379,7 @@ class Strategy:
                             DELIMITER.join([player_column_prefix(i, x), col])
                             for col in [
                                 PLAYER_KICKS_COLUMN,
+                                PLAYER_FUMBLES_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
