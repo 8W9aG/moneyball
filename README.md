@@ -87,7 +87,7 @@ moneyball --strategy=test_nfl_strategy --strategy=test_afl_strategy test_portfol
 To get a quantitative report on the next bets to place:
 
 ```
-moneyball test_portfolio next
+moneyball --output=bets.json test_portfolio next
 ```
 
 This will result in the following JSON written to stdout:

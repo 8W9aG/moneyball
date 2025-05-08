@@ -96,7 +96,7 @@ def main() -> None:
             bets = portfolio.next_bets()
             sys.stdout.write(json.dumps(bets))
             if args.output is not None:
-                with open(args.output, encoding="utf8") as handle:
+                with open(args.output, "w", encoding="utf8") as handle:
                     json.dump(bets, handle)
         case _:
             raise ValueError(f"Unrecognised function: {args.function}")
