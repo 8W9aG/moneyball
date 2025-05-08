@@ -30,6 +30,7 @@ from sportsball.data.player_model import \
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
 from sportsball.data.player_model import (PLAYER_FUMBLES_COLUMN,
+                                          PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_KICKS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
@@ -70,6 +71,7 @@ from .features.columns import (find_odds_count, find_player_count,
                                player_identifier_column, team_column_prefix,
                                team_identifier_column, team_points_column,
                                venue_identifier_column)
+from .kelly_fractions import augment_kelly_fractions
 
 HOME_WIN_COLUMN = "home_win"
 
@@ -84,10 +86,9 @@ class Strategy:
 
     _returns: pd.Series | None
 
-    def __init__(self, name: str, use_sports_feature: bool = False) -> None:
+    def __init__(self, name: str) -> None:
         self._df = None
         self._name = name
-        self._use_sports_features = use_sports_feature
         os.makedirs(name, exist_ok=True)
 
         # Load dataframe previously used.
@@ -185,45 +186,8 @@ class Strategy:
         if returns is None:
             df = self.predict()
             points_cols = main_df.attrs[str(FieldType.POINTS)]
-            points_cols = [team_points_column(x) for x in range(len(points_cols))]
-            prob_col = "_".join(
-                [HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX]  # type: ignore
-            )
-            odds_cols = [f"teams/{x}_odds" for x in range(len(points_cols))]
-            prob_cols = [x for x in df.columns.values if x.startswith(prob_col)]
             df[points_cols] = main_df[points_cols].to_numpy()
-            df = df[df[GAME_DT_COLUMN].dt.year >= datetime.datetime.now().year - 1]
-            probs = df[prob_cols].to_numpy()
-            odds = df[odds_cols].to_numpy()
-            points = df[points_cols].to_numpy()
-            best_idx = probs.argmax(axis=1)
-            wins_idx = points.argmax(axis=1)
-            p = probs[np.arange(len(df)), best_idx]
-            o = odds[np.arange(len(df)), best_idx]
-            b = o - 1.0
-            q = 1.0 - p
-            kelly_fraction = (b * p - q) / b
-            kelly_fraction = np.clip(kelly_fraction, 0, 1)
-            df["kelly_fraction"] = kelly_fraction
-            df["bet_won"] = best_idx == wins_idx
-            df["bet_odds"] = o
-            df = df.dropna(subset=["kelly_fraction", "bet_won", "bet_odds"])
-
-            def scale_fractions(group):
-                total = group["kelly_fraction"].sum()
-                if total > 1:
-                    scaling_factor = 1 / total
-                    group["adjusted_fraction"] = (
-                        group["kelly_fraction"] * scaling_factor
-                    )
-                else:
-                    group["adjusted_fraction"] = group["kelly_fraction"]
-                return group
-
-            df = df.groupby(df.columns[df.columns.values.tolist().index("dt")]).apply(
-                scale_fractions
-            )
-
+            df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
             df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
 
             def calculate_returns(kelly_ratio: float) -> pd.Series:
@@ -380,6 +344,7 @@ class Strategy:
                             for col in [
                                 PLAYER_KICKS_COLUMN,
                                 PLAYER_FUMBLES_COLUMN,
+                                PLAYER_FUMBLES_LOST_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
