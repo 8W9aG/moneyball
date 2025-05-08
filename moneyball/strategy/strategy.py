@@ -71,7 +71,7 @@ from .features.columns import (find_odds_count, find_player_count,
                                player_identifier_column, team_column_prefix,
                                team_identifier_column, team_points_column,
                                venue_identifier_column)
-from .kelly_fractions import augment_kelly_fractions
+from .kelly_fractions import augment_kelly_fractions, calculate_returns
 
 HOME_WIN_COLUMN = "home_win"
 
@@ -190,20 +190,10 @@ class Strategy:
             df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
             df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
 
-            def calculate_returns(kelly_ratio: float) -> pd.Series:
-                df["kelly_fraction_ratio"] = df["adjusted_fraction"] * kelly_ratio
-                df["return_multiplier"] = (
-                    np.where(
-                        df["bet_won"],
-                        1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
-                        1 - df["adjusted_fraction"],
-                    )
-                    - 1.0
-                )
-                return df["return_multiplier"].rename(self._name)
-
             def objective(trial: optuna.Trial) -> float:
-                ret = calculate_returns(trial.suggest_float("kelly_ratio", 0.0, 1.0))
+                ret = calculate_returns(
+                    trial.suggest_float("kelly_ratio", 0.0, 1.0), df.copy(), self._name
+                )
                 if abs(empyrical.max_drawdown(ret)) >= 1.0:
                     return 0.0
                 return empyrical.calmar_ratio(ret)  # type: ignore
@@ -215,7 +205,9 @@ class Strategy:
             )
 
             returns = calculate_returns(
-                self._kelly_study.best_trial.suggest_float("kelly_ratio", 0.0, 1.0)
+                self._kelly_study.best_trial.suggest_float("kelly_ratio", 0.0, 1.0),
+                df.copy(),
+                self._name,
             )
             self._returns = returns
         return returns

@@ -4,7 +4,7 @@ import os
 import unittest
 
 import pandas as pd
-from moneyball.strategy.kelly_fractions import augment_kelly_fractions
+from moneyball.strategy.kelly_fractions import augment_kelly_fractions, calculate_returns
 from moneyball.strategy.strategy import HOME_WIN_COLUMN
 from moneyball.strategy.features.columns import team_points_column
 import wavetrainer as wt
@@ -26,7 +26,7 @@ class TestKellyFraction(unittest.TestCase):
                 DELIMITER.join([HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX, str(1)]): [(rows - x) / 10.0 for x in range(rows)],
                 "teams/0_odds": [1.0 + (x / 10.0) for x in range(rows)],
                 "teams/1_odds": [2.0 + (x / 10.0) for x in range(rows)],
-                GAME_DT_COLUMN: [datetime.datetime(2022, 10, x + 1) for x in range(rows)],
+                GAME_DT_COLUMN: [datetime.datetime(datetime.datetime.now().year, 10, x + 1) for x in range(rows)],
                 team_points_column(0): list(range(rows)),
                 team_points_column(1): [x + 1.0 for x in range(rows)],
             }
@@ -40,3 +40,9 @@ class TestKellyFraction(unittest.TestCase):
         df = augment_kelly_fractions(df, 2, HOME_WIN_COLUMN)
         expected_df = pd.read_parquet(os.path.join(self.dir, "kelly_fraction_returns.parquet"))
         assert_frame_equal(df, expected_df)
+
+    def test_calculate_returns(self):
+        df = pd.read_parquet(os.path.join(self.dir, "kelly_fraction_returns.parquet"))
+        returns = calculate_returns(0.5, df, "test")
+        expected_df = pd.read_parquet(os.path.join(self.dir, "expected_returns.parquet"))
+        assert_frame_equal(returns.to_frame(), expected_df)

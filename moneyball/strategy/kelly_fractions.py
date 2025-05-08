@@ -51,9 +51,33 @@ def augment_kelly_fractions(
 
     # Check if the dt column is somehow in an index
     if GAME_DT_COLUMN in df.index.names:
+        dt_series = df[GAME_DT_COLUMN].copy()
         df = df.drop(columns=GAME_DT_COLUMN)
         df = df.reset_index(level=GAME_DT_COLUMN)
+        df[GAME_DT_COLUMN] = dt_series.tolist()
 
-    return df.groupby(
-        df.columns[df.columns.values.tolist().index(GAME_DT_COLUMN)]
-    ).apply(scale_fractions)
+    df = df.groupby(df[GAME_DT_COLUMN].dt.date).apply(scale_fractions)  # type: ignore
+    df[GAME_DT_COLUMN] = df[GAME_DT_COLUMN].dt.date
+    df = df.set_index(GAME_DT_COLUMN)
+    return df
+
+
+def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Series:
+    """Calculate the returns with a kelly ratio."""
+    df["kelly_fraction_ratio"] = df["adjusted_fraction"] * kelly_ratio
+    df["return_multiplier"] = (
+        np.where(
+            df["bet_won"],
+            1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
+            1 - df["adjusted_fraction"],
+        )
+        - 1.0
+    )
+
+    # Convert net return to multiplier
+    df["return_with_base"] = df["return_multiplier"] + 1.0
+
+    # Aggregate per day by multiplying
+    daily_return = df.groupby(df.index)["return_with_base"].prod() - 1.0
+
+    return daily_return.rename(name)
