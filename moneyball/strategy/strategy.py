@@ -339,6 +339,7 @@ class Strategy:
                                 PLAYER_FUMBLES_LOST_COLUMN,
                                 PLAYER_FIELD_GOALS_COLUMN,
                                 PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
+                                PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
