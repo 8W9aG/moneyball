@@ -340,6 +340,7 @@ class Strategy:
                                 PLAYER_FIELD_GOALS_COLUMN,
                                 PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
                                 PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
+                                PLAYER_ASSISTS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
