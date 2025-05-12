@@ -31,7 +31,7 @@ from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
 from sportsball.data.player_model import (PLAYER_FUMBLES_COLUMN,
                                           PLAYER_FUMBLES_LOST_COLUMN,
-                                          PLAYER_KICKS_COLUMN)
+                                          PLAYER_KICKS_COLUMN, TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -341,6 +341,7 @@ class Strategy:
                                 PLAYER_FIELD_GOALS_ATTEMPTED_COLUMN,
                                 PLAYER_OFFENSIVE_REBOUNDS_COLUMN,
                                 PLAYER_ASSISTS_COLUMN,
+                                PLAYER_TURNOVERS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
