@@ -18,7 +18,8 @@ from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import VENUE_COLUMN_PREFIX
 from sportsball.data.league_model import DELIMITER  # type: ignore
-from sportsball.data.odds_model import DT_COLUMN, ODDS_BOOKIE_COLUMN
+from sportsball.data.odds_model import (DT_COLUMN, ODDS_BOOKIE_COLUMN,
+                                        ODDS_CANONICAL_COLUMN)
 from sportsball.data.player_model import \
     ASSISTS_COLUMN as PLAYER_ASSISTS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
@@ -31,6 +32,7 @@ from sportsball.data.player_model import \
 from sportsball.data.player_model import (PLAYER_DISPOSALS_COLUMN,
                                           PLAYER_FUMBLES_COLUMN,
                                           PLAYER_FUMBLES_LOST_COLUMN,
+                                          PLAYER_GOALS_COLUMN,
                                           PLAYER_HANDBALLS_COLUMN,
                                           PLAYER_KICKS_COLUMN,
                                           PLAYER_MARKS_COLUMN)
@@ -321,6 +323,9 @@ class Strategy:
                             dt_column=DELIMITER.join(
                                 [odds_column_prefix(i, x), DT_COLUMN]
                             ),
+                            canonical_column=DELIMITER.join(
+                                [odds_column_prefix(i, x), ODDS_CANONICAL_COLUMN]
+                            ),
                         )
                         for x in range(odds_count)
                     ],
@@ -346,6 +351,7 @@ class Strategy:
                                 PLAYER_MARKS_COLUMN,
                                 PLAYER_HANDBALLS_COLUMN,
                                 PLAYER_DISPOSALS_COLUMN,
+                                PLAYER_GOALS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -382,6 +388,7 @@ class Strategy:
             identifiers,
             [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
             df.attrs[str(FieldType.CATEGORICAL)],
+            use_bets_features=False,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed
