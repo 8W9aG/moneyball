@@ -29,7 +29,8 @@ from sportsball.data.player_model import \
     FIELD_GOALS_COLUMN as PLAYER_FIELD_GOALS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
-from sportsball.data.player_model import (PLAYER_DISPOSALS_COLUMN,
+from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
+                                          PLAYER_DISPOSALS_COLUMN,
                                           PLAYER_FUMBLES_COLUMN,
                                           PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_GOALS_COLUMN,
@@ -326,6 +327,13 @@ class Strategy:
                             canonical_column=DELIMITER.join(
                                 [odds_column_prefix(i, x), ODDS_CANONICAL_COLUMN]
                             ),
+                            bookie_name_column=DELIMITER.join(
+                                [
+                                    odds_column_prefix(i, x),
+                                    ODDS_BOOKIE_COLUMN,
+                                    "name",
+                                ]
+                            ),
                         )
                         for x in range(odds_count)
                     ],
@@ -352,6 +360,7 @@ class Strategy:
                                 PLAYER_HANDBALLS_COLUMN,
                                 PLAYER_DISPOSALS_COLUMN,
                                 PLAYER_GOALS_COLUMN,
+                                PLAYER_BEHINDS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
