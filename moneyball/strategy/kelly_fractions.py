@@ -3,6 +3,7 @@
 # pylint: disable=too-many-locals
 import datetime
 
+import empyrical  # type: ignore
 import numpy as np
 import pandas as pd
 import wavetrainer as wt  # type: ignore
@@ -69,7 +70,7 @@ def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Ser
         np.where(
             df["bet_won"],
             1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
-            1 - df["adjusted_fraction"],
+            1 - df["kelly_fraction_ratio"],
         )
         - 1.0
     )
@@ -81,3 +82,10 @@ def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Ser
     daily_return = df.groupby(df.index)["return_with_base"].prod() - 1.0
 
     return daily_return.rename(name)
+
+
+def calculate_value(ret: pd.Series) -> float:
+    """Calculates the value of the returns."""
+    if abs(empyrical.max_drawdown(ret)) >= 1.0:
+        return 0.0
+    return empyrical.calmar_ratio(ret)  # type: ignore

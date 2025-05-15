@@ -6,7 +6,6 @@ import hashlib
 import os
 import pickle
 
-import empyrical  # type: ignore
 import numpy as np
 import optuna
 import pandas as pd
@@ -29,7 +28,8 @@ from sportsball.data.player_model import \
     FIELD_GOALS_COLUMN as PLAYER_FIELD_GOALS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
-from sportsball.data.player_model import (PLAYER_FUMBLES_COLUMN,
+from sportsball.data.player_model import (PLAYER_DISPOSALS_COLUMN,
+                                          PLAYER_FUMBLES_COLUMN,
                                           PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_HANDBALLS_COLUMN,
                                           PLAYER_KICKS_COLUMN,
@@ -73,7 +73,8 @@ from .features.columns import (find_odds_count, find_player_count,
                                player_identifier_column, team_column_prefix,
                                team_identifier_column, team_points_column,
                                venue_identifier_column)
-from .kelly_fractions import augment_kelly_fractions, calculate_returns
+from .kelly_fractions import (augment_kelly_fractions, calculate_returns,
+                              calculate_value)
 
 HOME_WIN_COLUMN = "home_win"
 
@@ -196,9 +197,7 @@ class Strategy:
                 ret = calculate_returns(
                     trial.suggest_float("kelly_ratio", 0.0, 1.0), df.copy(), self._name
                 )
-                if abs(empyrical.max_drawdown(ret)) >= 1.0:
-                    return 0.0
-                return empyrical.calmar_ratio(ret)  # type: ignore
+                return calculate_value(ret)
 
             self._kelly_study.optimize(
                 objective,
@@ -346,6 +345,7 @@ class Strategy:
                                 PLAYER_TURNOVERS_COLUMN,
                                 PLAYER_MARKS_COLUMN,
                                 PLAYER_HANDBALLS_COLUMN,
+                                PLAYER_DISPOSALS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
