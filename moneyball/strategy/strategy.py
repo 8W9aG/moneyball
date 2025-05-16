@@ -35,6 +35,7 @@ from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
                                           PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_GOALS_COLUMN,
                                           PLAYER_HANDBALLS_COLUMN,
+                                          PLAYER_HIT_OUTS_COLUMN,
                                           PLAYER_KICKS_COLUMN,
                                           PLAYER_MARKS_COLUMN)
 from sportsball.data.player_model import \
@@ -361,6 +362,7 @@ class Strategy:
                                 PLAYER_DISPOSALS_COLUMN,
                                 PLAYER_GOALS_COLUMN,
                                 PLAYER_BEHINDS_COLUMN,
+                                PLAYER_HIT_OUTS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
