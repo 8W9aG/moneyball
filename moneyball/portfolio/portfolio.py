@@ -160,7 +160,11 @@ class Portfolio:
                         next_df[identifier_column] = None
                     if name_column not in next_df.columns.values.tolist():
                         next_df[name_column] = None
-            for _, row in next_df.iterrows():
+            for _, row in next_df.itertuples(name=None):
+                row_dict = {
+                    x: row[count + 1]
+                    for count, x in enumerate(next_df.columns.values.tolist())
+                }
                 bets["bets"].append(
                     {
                         "strategy": strategy.name,
@@ -169,34 +173,34 @@ class Portfolio:
                         "weight": self._weights[strategy.name],
                         "teams": [
                             {
-                                "name": row[team_name_column(x)],
-                                "probability": row[prob_col + str(x)],
+                                "name": row_dict[team_name_column(x)],
+                                "probability": row_dict[prob_col + str(x)],
                                 "players": [
                                     {
-                                        "name": row[
+                                        "name": row_dict.get(
                                             DELIMITER.join(
                                                 [
                                                     player_column_prefix(x, y),
                                                     PLAYER_NAME_COLUMN,
                                                 ]
                                             )
-                                        ],
-                                        "identifier": row[
+                                        ),
+                                        "identifier": row_dict.get(
                                             DELIMITER.join(
                                                 [
                                                     player_column_prefix(x, y),
                                                     PLAYER_IDENTIFIER_COLUMN,
                                                 ]
                                             )
-                                        ],
+                                        ),
                                     }
                                     for y in range(player_count)
                                 ],
-                                "identifier": row[team_identifier_column(x)],
+                                "identifier": row_dict[team_identifier_column(x)],
                             }
                             for x in range(team_count)
                         ],
-                        "dt": row[GAME_DT_COLUMN].isoformat(),
+                        "dt": row_dict[GAME_DT_COLUMN].isoformat(),
                     }
                 )
         return bets

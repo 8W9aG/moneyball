@@ -5,7 +5,7 @@ from typing import TypedDict
 Player = TypedDict(
     "Player",
     {
-        "name": str,
-        "identifier": str,
+        "name": str | None,
+        "identifier": str | None,
     },
 )
