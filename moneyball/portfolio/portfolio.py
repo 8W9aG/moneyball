@@ -134,12 +134,32 @@ class Portfolio:
         prob_col = "_".join([HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX])  # type: ignore
         for strategy in self._strategies:
             next_df, feature_importances = strategy.next()
-            bets["feature_importances"][strategy.name] = feature_importances
+            high_feature_importance_dt = sorted(
+                list(feature_importances.keys()),
+                key=datetime.datetime.fromisoformat,
+            )[-1]
+            bets["feature_importances"][strategy.name] = {
+                high_feature_importance_dt: feature_importances[
+                    high_feature_importance_dt
+                ]
+            }
             next_df.to_parquet(
                 os.path.join(self._name, f"next_df_{strategy.name}.parquet")
             )
             team_count = find_team_count(next_df)
             player_count = find_player_count(next_df, team_count)
+            for i in range(team_count):
+                for ii in range(player_count):
+                    identifier_column = DELIMITER.join(
+                        [player_column_prefix(i, ii), PLAYER_IDENTIFIER_COLUMN]
+                    )
+                    name_column = DELIMITER.join(
+                        [player_column_prefix(i, ii), PLAYER_IDENTIFIER_COLUMN]
+                    )
+                    if identifier_column not in next_df.columns.values.tolist():
+                        next_df[identifier_column] = None
+                    if name_column not in next_df.columns.values.tolist():
+                        next_df[name_column] = None
             for _, row in next_df.iterrows():
                 bets["bets"].append(
                     {

@@ -37,7 +37,8 @@ from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
                                           PLAYER_HANDBALLS_COLUMN,
                                           PLAYER_HIT_OUTS_COLUMN,
                                           PLAYER_KICKS_COLUMN,
-                                          PLAYER_MARKS_COLUMN)
+                                          PLAYER_MARKS_COLUMN,
+                                          PLAYER_TACKLES_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -363,6 +364,7 @@ class Strategy:
                                 PLAYER_GOALS_COLUMN,
                                 PLAYER_BEHINDS_COLUMN,
                                 PLAYER_HIT_OUTS_COLUMN,
+                                PLAYER_TACKLES_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
