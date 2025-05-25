@@ -77,7 +77,7 @@ def main() -> None:
     match args.function:
         case Function.TRAIN:
             strategy = Strategy(args.name)
-            if args.cached:
+            if not args.cached:
                 parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
                 parquet_bytes.seek(0)
                 df = pd.read_parquet(parquet_bytes)

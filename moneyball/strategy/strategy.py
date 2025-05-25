@@ -32,6 +32,7 @@ from sportsball.data.player_model import \
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
 from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
+                                          PLAYER_CLEARANCES_COLUMN,
                                           PLAYER_DISPOSALS_COLUMN,
                                           PLAYER_FUMBLES_COLUMN,
                                           PLAYER_FUMBLES_LOST_COLUMN,
@@ -389,6 +390,7 @@ class Strategy:
                                 PLAYER_TACKLES_COLUMN,
                                 PLAYER_REBOUNDS_COLUMN,
                                 PLAYER_INSIDES_COLUMN,
+                                PLAYER_CLEARANCES_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
