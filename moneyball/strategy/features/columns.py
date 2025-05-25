@@ -5,13 +5,15 @@ from sportsball.data.game_model import GAME_ATTENDANCE_COLUMN  # type: ignore
 from sportsball.data.game_model import (GAME_WEEK_COLUMN, TEAM_COLUMN_PREFIX,
                                         VENUE_COLUMN_PREFIX)
 from sportsball.data.league_model import DELIMITER  # type: ignore
+from sportsball.data.news_model import NEWS_SUMMARY_COLUMN
 from sportsball.data.odds_model import ODDS_ODDS_COLUMN
 from sportsball.data.player_model import PLAYER_KICKS_COLUMN  # type: ignore
 from sportsball.data.player_model import (PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_IDENTIFIER_COLUMN)
 from sportsball.data.team_model import PLAYER_COLUMN_PREFIX  # type: ignore
 from sportsball.data.team_model import (NAME_COLUMN, TEAM_IDENTIFIER_COLUMN,
-                                        TEAM_ODDS_COLUMN, TEAM_POINTS_COLUMN)
+                                        TEAM_NEWS_COLUMN, TEAM_ODDS_COLUMN,
+                                        TEAM_POINTS_COLUMN)
 from sportsball.data.venue_model import VENUE_IDENTIFIER_COLUMN  # type: ignore
 
 
@@ -148,12 +150,14 @@ def find_odds_count(df: pd.DataFrame, team_count: int) -> int:
 
 def news_column_prefix(team_idx: int, news_idx: int) -> str:
     """Generates an news column_prefix."""
-    return DELIMITER.join([team_column_prefix(team_idx), "news", str(news_idx)])
+    return DELIMITER.join(
+        [team_column_prefix(team_idx), TEAM_NEWS_COLUMN, str(news_idx)]
+    )
 
 
 def news_summary_column(team_idx: int, news_idx: int) -> str:
     """Generates an news summary column."""
-    return DELIMITER.join([news_column_prefix(team_idx, news_idx), "summary"])
+    return DELIMITER.join([news_column_prefix(team_idx, news_idx), NEWS_SUMMARY_COLUMN])
 
 
 def find_news_count(df: pd.DataFrame, team_count: int) -> int:

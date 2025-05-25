@@ -18,6 +18,8 @@ from sportsball.data.field_type import FieldType  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import VENUE_COLUMN_PREFIX
 from sportsball.data.league_model import DELIMITER  # type: ignore
+from sportsball.data.news_model import (NEWS_PUBLISHED_COLUMN,
+                                        NEWS_SOURCE_COLUMN, NEWS_TITLE_COLUMN)
 from sportsball.data.odds_model import (DT_COLUMN, ODDS_BOOKIE_COLUMN,
                                         ODDS_CANONICAL_COLUMN)
 from sportsball.data.player_model import \
@@ -36,6 +38,7 @@ from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
                                           PLAYER_GOALS_COLUMN,
                                           PLAYER_HANDBALLS_COLUMN,
                                           PLAYER_HIT_OUTS_COLUMN,
+                                          PLAYER_INSIDES_COLUMN,
                                           PLAYER_KICKS_COLUMN,
                                           PLAYER_MARKS_COLUMN,
                                           PLAYER_REBOUNDS_COLUMN,
@@ -346,14 +349,14 @@ class Strategy:
                     news=[
                         News(
                             title_column=DELIMITER.join(
-                                [news_column_prefix(i, x), "title"]
+                                [news_column_prefix(i, x), NEWS_TITLE_COLUMN]
                             ),
                             published_column=DELIMITER.join(
-                                [news_column_prefix(i, x), "published"]
+                                [news_column_prefix(i, x), NEWS_PUBLISHED_COLUMN]
                             ),
                             summary_column=news_summary_column(i, x),
                             source_column=DELIMITER.join(
-                                [news_column_prefix(i, x), "source"]
+                                [news_column_prefix(i, x), NEWS_SOURCE_COLUMN]
                             ),
                         )
                         for x in range(news_count)
@@ -385,6 +388,7 @@ class Strategy:
                                 PLAYER_HIT_OUTS_COLUMN,
                                 PLAYER_TACKLES_COLUMN,
                                 PLAYER_REBOUNDS_COLUMN,
+                                PLAYER_INSIDES_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
