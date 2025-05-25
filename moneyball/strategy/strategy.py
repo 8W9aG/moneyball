@@ -32,6 +32,7 @@ from sportsball.data.player_model import \
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
 from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
+                                          PLAYER_CLANGERS_COLUMN,
                                           PLAYER_CLEARANCES_COLUMN,
                                           PLAYER_DISPOSALS_COLUMN,
                                           PLAYER_FUMBLES_COLUMN,
@@ -73,9 +74,11 @@ from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
                                         TURNOVERS_COLUMN)
 from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.bet import Bet
+from sportsfeatures.columns import DELIMITER as SPORTSFEATURES_DELIMITER
 from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.news import News
+from sportsfeatures.news_process import EMBEDDING_COLUMN, NEWS_COLUMN
 from sportsfeatures.process import process  # type: ignore
 
 from .features.columns import (find_news_count, find_odds_count,
@@ -173,6 +176,7 @@ class Strategy:
         y[HOME_WIN_COLUMN] = np.argmax(y.to_numpy(), axis=1)
         x_df = x_df.drop(columns=training_cols)
         x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
+        self._wt.embedding_cols = [self._calculate_embedding_columns(x_df)]
         self._wt.fit(x_df, y=y[HOME_WIN_COLUMN].astype(bool))
 
     def predict(self) -> pd.DataFrame:
@@ -185,6 +189,7 @@ class Strategy:
         training_cols = df.attrs[str(FieldType.POINTS)]
         x_df = x_df.drop(columns=training_cols, errors="ignore")
         x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
+        self._wt.embedding_cols = [self._calculate_embedding_columns(x_df)]
         x_df = self._wt.transform(x_df)
         for points_col in df.attrs[str(FieldType.POINTS)]:
             x_df[points_col] = df[points_col]
@@ -391,6 +396,7 @@ class Strategy:
                                 PLAYER_REBOUNDS_COLUMN,
                                 PLAYER_INSIDES_COLUMN,
                                 PLAYER_CLEARANCES_COLUMN,
+                                PLAYER_CLANGERS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -431,3 +437,18 @@ class Strategy:
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed
+
+    def _calculate_embedding_columns(self, df: pd.DataFrame) -> list[str]:
+        def is_embedding_column(col: str) -> bool:
+            col_split = col.split(SPORTSFEATURES_DELIMITER)
+            if len(col_split) < 3:
+                return False
+            if col_split[-3] != NEWS_COLUMN:
+                return False
+            if col_split[-2] != EMBEDDING_COLUMN:
+                return False
+            if not col_split[-1].isnumeric():
+                return False
+            return True
+
+        return [x for x in df.columns.values.tolist() if is_embedding_column(x)]
