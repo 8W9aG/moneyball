@@ -1,8 +1,9 @@
 """The portfolio class."""
 
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,too-many-locals
 import datetime
 import json
+import logging
 import os
 
 import matplotlib.pyplot as plt
@@ -160,15 +161,19 @@ class Portfolio:
                         next_df[identifier_column] = None
                     if name_column not in next_df.columns.values.tolist():
                         next_df[name_column] = None
-            for _, row in next_df.itertuples(name=None):
+            for row in next_df.itertuples(name=None):
                 row_dict = {
                     x: row[count + 1]
                     for count, x in enumerate(next_df.columns.values.tolist())
                 }
+                for k, v in row_dict.items():
+                    if v is not None:
+                        continue
+                    logging.info("Row %s Feature %s has null value", str(row[0]), k)
                 bets["bets"].append(
                     {
                         "strategy": strategy.name,
-                        "league": row[LEAGUE_COLUMN],
+                        "league": row_dict[LEAGUE_COLUMN],
                         "kelly": strategy.kelly_ratio,
                         "weight": self._weights[strategy.name],
                         "teams": [

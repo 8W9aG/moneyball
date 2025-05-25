@@ -42,6 +42,13 @@ def main() -> None:
         required=False,
     )
     parser.add_argument(
+        "--cached",
+        help="Whether to use the cached dataframe.",
+        required=False,
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
         "name",
         help="The name of the strategy/portfolio.",
     )
@@ -69,11 +76,12 @@ def main() -> None:
 
     match args.function:
         case Function.TRAIN:
-            parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
-            parquet_bytes.seek(0)
-            df = pd.read_parquet(parquet_bytes)
             strategy = Strategy(args.name)
-            strategy.df = df
+            if args.cached:
+                parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
+                parquet_bytes.seek(0)
+                df = pd.read_parquet(parquet_bytes)
+                strategy.df = df
             strategy.fit()
         case Function.PORTFOLIO:
             if args.name is None:

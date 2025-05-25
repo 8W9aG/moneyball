@@ -132,7 +132,7 @@ def odds_odds_column(team_idx: int, odds_idx: int) -> str:
 
 
 def find_odds_count(df: pd.DataFrame, team_count: int) -> int:
-    """Find the number of players in a team in the dataframe."""
+    """Find the number of odds in a team in the dataframe."""
     odds_count = 0
     while True:
         found_odds = False
@@ -144,3 +144,28 @@ def find_odds_count(df: pd.DataFrame, team_count: int) -> int:
             break
         odds_count += 1
     return odds_count
+
+
+def news_column_prefix(team_idx: int, news_idx: int) -> str:
+    """Generates an news column_prefix."""
+    return DELIMITER.join([team_column_prefix(team_idx), "news", str(news_idx)])
+
+
+def news_summary_column(team_idx: int, news_idx: int) -> str:
+    """Generates an news summary column."""
+    return DELIMITER.join([news_column_prefix(team_idx, news_idx), "summary"])
+
+
+def find_news_count(df: pd.DataFrame, team_count: int) -> int:
+    """Find the number of news articles in a team in the dataframe."""
+    news_count = 0
+    while True:
+        found_news = False
+        for i in range(team_count):
+            if news_summary_column(i, news_count) not in df.columns.values:
+                continue
+            found_news = True
+        if not found_news:
+            break
+        news_count += 1
+    return news_count

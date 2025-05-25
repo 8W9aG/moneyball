@@ -38,6 +38,7 @@ from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
                                           PLAYER_HIT_OUTS_COLUMN,
                                           PLAYER_KICKS_COLUMN,
                                           PLAYER_MARKS_COLUMN,
+                                          PLAYER_REBOUNDS_COLUMN,
                                           PLAYER_TACKLES_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
@@ -70,14 +71,16 @@ from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.bet import Bet
 from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
+from sportsfeatures.news import News
 from sportsfeatures.process import process  # type: ignore
 
-from .features.columns import (find_odds_count, find_player_count,
-                               find_team_count, odds_column_prefix,
-                               odds_odds_column, player_column_prefix,
-                               player_identifier_column, team_column_prefix,
-                               team_identifier_column, team_points_column,
-                               venue_identifier_column)
+from .features.columns import (find_news_count, find_odds_count,
+                               find_player_count, find_team_count,
+                               news_column_prefix, news_summary_column,
+                               odds_column_prefix, odds_odds_column,
+                               player_column_prefix, player_identifier_column,
+                               team_column_prefix, team_identifier_column,
+                               team_points_column, venue_identifier_column)
 from .kelly_fractions import (augment_kelly_fractions, calculate_returns,
                               calculate_value)
 
@@ -259,6 +262,7 @@ class Strategy:
             )
         ]
         odds_count = find_odds_count(df, team_count)
+        news_count = find_news_count(df, team_count)
         for i in range(team_count):
             identifiers.append(
                 Identifier(
@@ -339,6 +343,21 @@ class Strategy:
                         )
                         for x in range(odds_count)
                     ],
+                    news=[
+                        News(
+                            title_column=DELIMITER.join(
+                                [news_column_prefix(i, x), "title"]
+                            ),
+                            published_column=DELIMITER.join(
+                                [news_column_prefix(i, x), "published"]
+                            ),
+                            summary_column=news_summary_column(i, x),
+                            source_column=DELIMITER.join(
+                                [news_column_prefix(i, x), "source"]
+                            ),
+                        )
+                        for x in range(news_count)
+                    ],
                 )
             )
             player_count = find_player_count(df, i)
@@ -365,6 +384,7 @@ class Strategy:
                                 PLAYER_BEHINDS_COLUMN,
                                 PLAYER_HIT_OUTS_COLUMN,
                                 PLAYER_TACKLES_COLUMN,
+                                PLAYER_REBOUNDS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
