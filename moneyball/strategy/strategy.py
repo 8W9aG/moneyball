@@ -20,7 +20,8 @@ from sportsball.data.game_model import VENUE_COLUMN_PREFIX
 from sportsball.data.league_model import DELIMITER  # type: ignore
 from sportsball.data.news_model import (NEWS_PUBLISHED_COLUMN,
                                         NEWS_SOURCE_COLUMN, NEWS_TITLE_COLUMN)
-from sportsball.data.odds_model import (DT_COLUMN, ODDS_BOOKIE_COLUMN,
+from sportsball.data.odds_model import (DT_COLUMN, ODDS_BET_COLUMN,
+                                        ODDS_BOOKIE_COLUMN,
                                         ODDS_CANONICAL_COLUMN)
 from sportsball.data.player_model import \
     ASSISTS_COLUMN as PLAYER_ASSISTS_COLUMN  # type: ignore
@@ -35,6 +36,7 @@ from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
                                           PLAYER_CLANGERS_COLUMN,
                                           PLAYER_CLEARANCES_COLUMN,
                                           PLAYER_DISPOSALS_COLUMN,
+                                          PLAYER_FREE_KICKS_FOR_COLUMN,
                                           PLAYER_FUMBLES_COLUMN,
                                           PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_GOALS_COLUMN,
@@ -349,6 +351,12 @@ class Strategy:
                                     "name",
                                 ]
                             ),
+                            bet_type_column=DELIMITER.join(
+                                [
+                                    odds_column_prefix(i, x),
+                                    ODDS_BET_COLUMN,
+                                ]
+                            ),
                         )
                         for x in range(odds_count)
                     ],
@@ -397,6 +405,7 @@ class Strategy:
                                 PLAYER_INSIDES_COLUMN,
                                 PLAYER_CLEARANCES_COLUMN,
                                 PLAYER_CLANGERS_COLUMN,
+                                PLAYER_FREE_KICKS_FOR_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
