@@ -33,6 +33,7 @@ from sportsball.data.player_model import \
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
 from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
+                                          PLAYER_BROWNLOW_VOTES_COLUMN,
                                           PLAYER_CLANGERS_COLUMN,
                                           PLAYER_CLEARANCES_COLUMN,
                                           PLAYER_DISPOSALS_COLUMN,
@@ -408,6 +409,7 @@ class Strategy:
                                 PLAYER_CLANGERS_COLUMN,
                                 PLAYER_FREE_KICKS_FOR_COLUMN,
                                 PLAYER_FREE_KICKS_AGAINST_COLUMN,
+                                PLAYER_BROWNLOW_VOTES_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -445,6 +447,7 @@ class Strategy:
             [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
             df.attrs[str(FieldType.CATEGORICAL)],
             use_bets_features=False,
+            use_news_features=False,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed
