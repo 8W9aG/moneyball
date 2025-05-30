@@ -78,11 +78,9 @@ from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
                                         TURNOVERS_COLUMN)
 from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.bet import Bet
-from sportsfeatures.columns import DELIMITER as SPORTSFEATURES_DELIMITER
 from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.news import News
-from sportsfeatures.news_process import EMBEDDING_COLUMN, NEWS_COLUMN
 from sportsfeatures.process import process  # type: ignore
 
 from .features.columns import (find_news_count, find_odds_count,
@@ -453,16 +451,8 @@ class Strategy:
         return df_processed
 
     def _calculate_embedding_columns(self, df: pd.DataFrame) -> list[str]:
-        def is_embedding_column(col: str) -> bool:
-            col_split = col.split(SPORTSFEATURES_DELIMITER)
-            if len(col_split) < 3:
-                return False
-            if col_split[-3] != NEWS_COLUMN:
-                return False
-            if col_split[-2] != EMBEDDING_COLUMN:
-                return False
-            if not col_split[-1].isnumeric():
-                return False
-            return True
+        def is_embedding_column(_: str) -> bool:
+            # Temporarily disable for now
+            return False
 
         return [x for x in df.columns.values.tolist() if is_embedding_column(x)]
