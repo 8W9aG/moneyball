@@ -40,8 +40,8 @@ from sportsball.data.player_model import (
     PLAYER_FREE_KICKS_FOR_COLUMN, PLAYER_FUMBLES_COLUMN,
     PLAYER_FUMBLES_LOST_COLUMN, PLAYER_GOALS_COLUMN, PLAYER_HANDBALLS_COLUMN,
     PLAYER_HIT_OUTS_COLUMN, PLAYER_INSIDES_COLUMN, PLAYER_KICKS_COLUMN,
-    PLAYER_MARKS_COLUMN, PLAYER_REBOUNDS_COLUMN, PLAYER_TACKLES_COLUMN,
-    PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
+    PLAYER_MARKS_COLUMN, PLAYER_MARKS_INSIDE_COLUMN, PLAYER_REBOUNDS_COLUMN,
+    PLAYER_TACKLES_COLUMN, PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -173,7 +173,7 @@ class Strategy:
         y[HOME_WIN_COLUMN] = np.argmax(y.to_numpy(), axis=1)
         x_df = x_df.drop(columns=training_cols)
         x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
-        self._wt.embedding_cols = [self._calculate_embedding_columns(x_df)]
+        self._wt.embedding_cols = self._calculate_embedding_columns(x_df)
         self._wt.fit(x_df, y=y[HOME_WIN_COLUMN].astype(bool))
 
     def predict(self) -> pd.DataFrame:
@@ -186,7 +186,7 @@ class Strategy:
         training_cols = df.attrs[str(FieldType.POINTS)]
         x_df = x_df.drop(columns=training_cols, errors="ignore")
         x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
-        self._wt.embedding_cols = [self._calculate_embedding_columns(x_df)]
+        self._wt.embedding_cols = self._calculate_embedding_columns(x_df)
         x_df = self._wt.transform(x_df)
         for points_col in df.attrs[str(FieldType.POINTS)]:
             x_df[points_col] = df[points_col]
@@ -406,6 +406,7 @@ class Strategy:
                                 PLAYER_CONTESTED_POSSESSIONS_COLUMN,
                                 PLAYER_UNCONTESTED_POSSESSIONS_COLUMN,
                                 PLAYER_CONTESTED_MARKS_COLUMN,
+                                PLAYER_MARKS_INSIDE_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -448,7 +449,9 @@ class Strategy:
         df_processed.to_parquet(df_cache_path)
         return df_processed
 
-    def _calculate_embedding_columns(self, df: pd.DataFrame) -> list[str]:
+    def _calculate_embedding_columns(self, df: pd.DataFrame) -> list[list[str]]:
+        team_count = find_team_count(df)
+
         def is_embedding_column(col: str) -> bool:
             col_split = col.split(SPORTSFEATURES_DELIMITER)
             if len(col_split) < 3:
@@ -459,4 +462,15 @@ class Strategy:
                 return False
             return True
 
-        return [x for x in df.columns.values.tolist() if is_embedding_column(x)]
+        embedding_cols = []
+        for i in range(team_count):
+            col_prefix = team_column_prefix(i)
+            embedding_cols.append(
+                [
+                    x
+                    for x in df.columns.values.tolist()
+                    if x.startswith(col_prefix) and is_embedding_column(x)
+                ]
+            )
+
+        return embedding_cols
