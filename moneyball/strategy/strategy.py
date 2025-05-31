@@ -32,24 +32,15 @@ from sportsball.data.player_model import \
     FIELD_GOALS_COLUMN as PLAYER_FIELD_GOALS_COLUMN  # type: ignore
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
-from sportsball.data.player_model import (PLAYER_BEHINDS_COLUMN,
-                                          PLAYER_BROWNLOW_VOTES_COLUMN,
-                                          PLAYER_CLANGERS_COLUMN,
-                                          PLAYER_CLEARANCES_COLUMN,
-                                          PLAYER_CONTESTED_POSSESSIONS_COLUMN,
-                                          PLAYER_DISPOSALS_COLUMN,
-                                          PLAYER_FREE_KICKS_AGAINST_COLUMN,
-                                          PLAYER_FREE_KICKS_FOR_COLUMN,
-                                          PLAYER_FUMBLES_COLUMN,
-                                          PLAYER_FUMBLES_LOST_COLUMN,
-                                          PLAYER_GOALS_COLUMN,
-                                          PLAYER_HANDBALLS_COLUMN,
-                                          PLAYER_HIT_OUTS_COLUMN,
-                                          PLAYER_INSIDES_COLUMN,
-                                          PLAYER_KICKS_COLUMN,
-                                          PLAYER_MARKS_COLUMN,
-                                          PLAYER_REBOUNDS_COLUMN,
-                                          PLAYER_TACKLES_COLUMN)
+from sportsball.data.player_model import (
+    PLAYER_BEHINDS_COLUMN, PLAYER_BROWNLOW_VOTES_COLUMN,
+    PLAYER_CLANGERS_COLUMN, PLAYER_CLEARANCES_COLUMN,
+    PLAYER_CONTESTED_POSSESSIONS_COLUMN, PLAYER_DISPOSALS_COLUMN,
+    PLAYER_FREE_KICKS_AGAINST_COLUMN, PLAYER_FREE_KICKS_FOR_COLUMN,
+    PLAYER_FUMBLES_COLUMN, PLAYER_FUMBLES_LOST_COLUMN, PLAYER_GOALS_COLUMN,
+    PLAYER_HANDBALLS_COLUMN, PLAYER_HIT_OUTS_COLUMN, PLAYER_INSIDES_COLUMN,
+    PLAYER_KICKS_COLUMN, PLAYER_MARKS_COLUMN, PLAYER_REBOUNDS_COLUMN,
+    PLAYER_TACKLES_COLUMN, PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -83,8 +74,8 @@ from sportsfeatures.columns import DELIMITER as SPORTSFEATURES_DELIMITER
 from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.news import News
-from sportsfeatures.news_process import EMBEDDING_COLUMN, NEWS_COLUMN
 from sportsfeatures.process import process  # type: ignore
+from textfeats.columns import EMBEDDING_COLUMN
 
 from .features.columns import (find_news_count, find_odds_count,
                                find_player_count, find_team_count,
@@ -412,6 +403,7 @@ class Strategy:
                                 PLAYER_FREE_KICKS_AGAINST_COLUMN,
                                 PLAYER_BROWNLOW_VOTES_COLUMN,
                                 PLAYER_CONTESTED_POSSESSIONS_COLUMN,
+                                PLAYER_UNCONTESTED_POSSESSIONS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -458,8 +450,6 @@ class Strategy:
         def is_embedding_column(col: str) -> bool:
             col_split = col.split(SPORTSFEATURES_DELIMITER)
             if len(col_split) < 3:
-                return False
-            if col_split[-3] != NEWS_COLUMN:
                 return False
             if col_split[-2] != EMBEDDING_COLUMN:
                 return False

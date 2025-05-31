@@ -30,6 +30,7 @@ Python 3.11.6:
 - [riskfolio](https://github.com/dcajasn/Riskfolio-Lib)
 - [sports-features](https://github.com/8W9aG/sports-features)
 - [empyrical-reloaded](https://empyrical.ml4trading.io/)
+- [textfeats](https://github.com/8W9aG/text-features)
 
 ## Raison D'être :thought_balloon:
 
