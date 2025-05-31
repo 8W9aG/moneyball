@@ -41,7 +41,7 @@ from sportsball.data.player_model import (
     PLAYER_FUMBLES_LOST_COLUMN, PLAYER_GOALS_COLUMN, PLAYER_HANDBALLS_COLUMN,
     PLAYER_HIT_OUTS_COLUMN, PLAYER_INSIDES_COLUMN, PLAYER_KICKS_COLUMN,
     PLAYER_MARKS_COLUMN, PLAYER_MARKS_INSIDE_COLUMN, PLAYER_REBOUNDS_COLUMN,
-    PLAYER_TACKLES_COLUMN, PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
+    PLAYER_TACKLES_COLUMN, PLAYER_UNCONTESTED_POSSESSIONS_COLUMN, PLAYER_ONE_PERCENTERS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -407,6 +407,7 @@ class Strategy:
                                 PLAYER_UNCONTESTED_POSSESSIONS_COLUMN,
                                 PLAYER_CONTESTED_MARKS_COLUMN,
                                 PLAYER_MARKS_INSIDE_COLUMN,
+                                PLAYER_ONE_PERCENTERS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
