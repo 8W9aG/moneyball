@@ -149,10 +149,8 @@ class Strategy:
             raise ValueError("main_df is null")
         points_cols = main_df.attrs[str(FieldType.POINTS)]
         df[points_cols] = main_df[points_cols].to_numpy()
-        cutoff_dt = pd.to_datetime(datetime.datetime.now() - _VALIDATION_SIZE).floor(
-            "D"
-        )
-        df = df[df[GAME_DT_COLUMN].floor("D") > cutoff_dt]
+        cutoff_dt = pd.to_datetime(datetime.datetime.now() - _VALIDATION_SIZE).date()
+        df = df[df[GAME_DT_COLUMN].dt.date > cutoff_dt]
         df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
         df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
         max_return = 0.0
@@ -203,21 +201,11 @@ class Strategy:
 
     def returns(self) -> pd.Series:
         """Render the returns of the strategy."""
-        main_df = self.df
-        if main_df is None:
-            raise ValueError("main_df is null.")
-        main_df = main_df.copy()
-
+        df = self.predict()
+        self.kelly_ratio(df)
         returns = self._returns
         if returns is None:
-            df = self.predict()
-            kelly_ratio = self.kelly_ratio(df)
-            returns = calculate_returns(
-                kelly_ratio,
-                df.copy(),
-                self._name,
-            )
-            self._returns = returns
+            raise ValueError("returns is null")
         return returns
 
     def next(self) -> tuple[pd.DataFrame, dict[str, dict[str, float]], float]:
