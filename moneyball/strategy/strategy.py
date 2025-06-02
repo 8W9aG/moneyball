@@ -149,8 +149,10 @@ class Strategy:
             raise ValueError("main_df is null")
         points_cols = main_df.attrs[str(FieldType.POINTS)]
         df[points_cols] = main_df[points_cols].to_numpy()
-        cutoff_dt = datetime.datetime.now() - _VALIDATION_SIZE
-        df = df[df[GAME_DT_COLUMN] > cutoff_dt]
+        cutoff_dt = pd.to_datetime(datetime.datetime.now() - _VALIDATION_SIZE).floor(
+            "D"
+        )
+        df = df[df[GAME_DT_COLUMN].floor("D") > cutoff_dt]
         df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
         df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
         max_return = 0.0
