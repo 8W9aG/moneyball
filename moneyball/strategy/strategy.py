@@ -166,6 +166,7 @@ class Strategy:
             if value > max_return:
                 max_return = value
                 max_kelly = test_kelly_ratio
+        self._returns = calculate_returns(max_kelly, df.copy(), self._name)
 
         return max_kelly
 
