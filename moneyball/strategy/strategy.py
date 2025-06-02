@@ -4,10 +4,8 @@
 import datetime
 import hashlib
 import os
-import pickle
 
 import numpy as np
-import optuna
 import pandas as pd
 import pytz
 import wavetrainer as wt  # type: ignore
@@ -33,12 +31,13 @@ from sportsball.data.player_model import \
 from sportsball.data.player_model import \
     OFFENSIVE_REBOUNDS_COLUMN as PLAYER_OFFENSIVE_REBOUNDS_COLUMN
 from sportsball.data.player_model import (
-    PLAYER_BEHINDS_COLUMN, PLAYER_BOUNCES_COLUMN, PLAYER_BROWNLOW_VOTES_COLUMN,
-    PLAYER_CLANGERS_COLUMN, PLAYER_CLEARANCES_COLUMN,
-    PLAYER_CONTESTED_MARKS_COLUMN, PLAYER_CONTESTED_POSSESSIONS_COLUMN,
-    PLAYER_DISPOSALS_COLUMN, PLAYER_FREE_KICKS_AGAINST_COLUMN,
-    PLAYER_FREE_KICKS_FOR_COLUMN, PLAYER_FUMBLES_COLUMN,
-    PLAYER_FUMBLES_LOST_COLUMN, PLAYER_GOALS_COLUMN, PLAYER_HANDBALLS_COLUMN,
+    PLAYER_BEHINDS_COLUMN, PLAYER_BIRTH_DATE_COLUMN, PLAYER_BOUNCES_COLUMN,
+    PLAYER_BROWNLOW_VOTES_COLUMN, PLAYER_CLANGERS_COLUMN,
+    PLAYER_CLEARANCES_COLUMN, PLAYER_CONTESTED_MARKS_COLUMN,
+    PLAYER_CONTESTED_POSSESSIONS_COLUMN, PLAYER_DISPOSALS_COLUMN,
+    PLAYER_FREE_KICKS_AGAINST_COLUMN, PLAYER_FREE_KICKS_FOR_COLUMN,
+    PLAYER_FUMBLES_COLUMN, PLAYER_FUMBLES_LOST_COLUMN,
+    PLAYER_GOAL_ASSISTS_COLUMN, PLAYER_GOALS_COLUMN, PLAYER_HANDBALLS_COLUMN,
     PLAYER_HIT_OUTS_COLUMN, PLAYER_INSIDES_COLUMN, PLAYER_KICKS_COLUMN,
     PLAYER_MARKS_COLUMN, PLAYER_MARKS_INSIDE_COLUMN,
     PLAYER_ONE_PERCENTERS_COLUMN, PLAYER_REBOUNDS_COLUMN,
@@ -122,21 +121,6 @@ class Strategy:
             test_size=datetime.timedelta(days=365 * 2),
         )
 
-        # Load kelly study
-        kelly_storage_name = f"sqlite:///{name}/kelly_study.db"
-        kelly_sampler_file = os.path.join(name, _KELLY_SAMPLER_FILENAME)
-        kelly_restored_sampler = None
-        if os.path.exists(kelly_sampler_file):
-            with open(kelly_sampler_file, "rb") as handle:
-                kelly_restored_sampler = pickle.load(handle)
-        self._kelly_study = optuna.create_study(
-            study_name=f"kelly_{name}",
-            storage=kelly_storage_name,
-            load_if_exists=True,
-            sampler=kelly_restored_sampler,
-            direction=optuna.study.StudyDirection.MAXIMIZE,
-        )
-
         self._returns = None
 
     @property
@@ -158,10 +142,32 @@ class Strategy:
         """Fetch the name of the strategy."""
         return self._name
 
-    @property
-    def kelly_ratio(self) -> float:
+    def kelly_ratio(self, df: pd.DataFrame) -> float:
         """Find the best kelly ratio for this strategy."""
-        return self._kelly_study.best_trial.suggest_float("kelly_ratio", 0.0, 2.0)
+        main_df = self.df
+        if main_df is None:
+            raise ValueError("main_df is null")
+        points_cols = main_df.attrs[str(FieldType.POINTS)]
+        df[points_cols] = main_df[points_cols].to_numpy()
+        cutoff_dt = datetime.datetime.today() - datetime.timedelta(days=365)
+        df = df[df[GAME_DT_COLUMN] > cutoff_dt]
+        df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
+        df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
+        max_return = 0.0
+        max_kelly = 0.0
+        for i in range(100):
+            test_kelly_ratio = (100 - i) / 100.0
+            returns = calculate_returns(
+                test_kelly_ratio,
+                df.copy(),
+                self._name,
+            )
+            value = calculate_value(returns)
+            if value > max_return:
+                max_return = value
+                max_kelly = test_kelly_ratio
+
+        return max_kelly
 
     def fit(self):
         """Fits the strategy to the dataset by walking forward."""
@@ -203,40 +209,25 @@ class Strategy:
         returns = self._returns
         if returns is None:
             df = self.predict()
-            points_cols = main_df.attrs[str(FieldType.POINTS)]
-            df[points_cols] = main_df[points_cols].to_numpy()
-            df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
-            df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
-
-            def objective(trial: optuna.Trial) -> float:
-                ret = calculate_returns(
-                    trial.suggest_float("kelly_ratio", 0.0, 1.0), df.copy(), self._name
-                )
-                return calculate_value(ret)
-
-            self._kelly_study.optimize(
-                objective,
-                n_trials=max(100 - len(self._kelly_study.trials), 1),
-                show_progress_bar=True,
-            )
-
+            kelly_ratio = self.kelly_ratio(df)
             returns = calculate_returns(
-                self._kelly_study.best_trial.suggest_float("kelly_ratio", 0.0, 1.0),
+                kelly_ratio,
                 df.copy(),
                 self._name,
             )
             self._returns = returns
         return returns
 
-    def next(self) -> tuple[pd.DataFrame, dict[str, dict[str, float]]]:
+    def next(self) -> tuple[pd.DataFrame, dict[str, dict[str, float]], float]:
         """Find the next predictions for betting."""
         dt_column = DELIMITER.join([GAME_DT_COLUMN])
         df = self.predict()
+        kelly_ratio = self.kelly_ratio(df)
         start_dt = datetime.datetime.now(datetime.timezone.utc)
         end_dt = start_dt + datetime.timedelta(days=3.0)
         df = df[df[dt_column] > start_dt]
         df = df[df[dt_column] <= end_dt]
-        return df, self._wt.feature_importances()
+        return df, self._wt.feature_importances(), kelly_ratio
 
     def _process(self) -> pd.DataFrame:
         df = self.df
@@ -270,6 +261,7 @@ class Strategy:
         ]
         odds_count = find_odds_count(df, team_count)
         news_count = find_news_count(df, team_count)
+        datetime_columns: set[str] = set()
         for i in range(team_count):
             identifiers.append(
                 Identifier(
@@ -410,6 +402,7 @@ class Strategy:
                                 PLAYER_MARKS_INSIDE_COLUMN,
                                 PLAYER_ONE_PERCENTERS_COLUMN,
                                 PLAYER_BOUNCES_COLUMN,
+                                PLAYER_GOAL_ASSISTS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -440,6 +433,12 @@ class Strategy:
                     for x in range(player_count)
                 ]
             )
+            for player_id in range(player_count):
+                datetime_columns.add(
+                    DELIMITER.join(
+                        [player_column_prefix(i, player_id), PLAYER_BIRTH_DATE_COLUMN]
+                    )
+                )
         df_processed = process(
             df,
             GAME_DT_COLUMN,
@@ -448,6 +447,7 @@ class Strategy:
             df.attrs[str(FieldType.CATEGORICAL)],
             use_bets_features=False,
             use_news_features=True,
+            datetime_columns=datetime_columns,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed

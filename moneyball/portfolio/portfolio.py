@@ -134,7 +134,7 @@ class Portfolio:
         bets: NextBets = {"bets": [], "feature_importances": {}}
         prob_col = "_".join([HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX])  # type: ignore
         for strategy in self._strategies:
-            next_df, feature_importances = strategy.next()
+            next_df, feature_importances, kelly_ratio = strategy.next()
             high_feature_importance_dt = sorted(
                 list(feature_importances.keys()),
                 key=datetime.datetime.fromisoformat,
@@ -174,7 +174,7 @@ class Portfolio:
                     {
                         "strategy": strategy.name,
                         "league": row_dict[LEAGUE_COLUMN],
-                        "kelly": strategy.kelly_ratio,
+                        "kelly": kelly_ratio,
                         "weight": self._weights[strategy.name],
                         "teams": [
                             {
