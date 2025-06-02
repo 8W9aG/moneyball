@@ -90,8 +90,8 @@ from .kelly_fractions import (augment_kelly_fractions, calculate_returns,
 
 HOME_WIN_COLUMN = "home_win"
 
-_KELLY_SAMPLER_FILENAME = "kelly_sampler.pkl"
 _DF_FILENAME = "df.parquet.gzip"
+_VALIDATION_SIZE = datetime.timedelta(days=365)
 
 
 class Strategy:
@@ -115,7 +115,7 @@ class Strategy:
             self._name,
             dt_column=GAME_DT_COLUMN,
             walkforward_timedelta=datetime.timedelta(days=7),
-            validation_size=datetime.timedelta(days=365),
+            validation_size=_VALIDATION_SIZE,
             max_train_timeout=datetime.timedelta(hours=12),
             cutoff_dt=datetime.datetime.now(tz=pytz.UTC),
             test_size=datetime.timedelta(days=365 * 2),
@@ -149,7 +149,7 @@ class Strategy:
             raise ValueError("main_df is null")
         points_cols = main_df.attrs[str(FieldType.POINTS)]
         df[points_cols] = main_df[points_cols].to_numpy()
-        cutoff_dt = datetime.datetime.today() - datetime.timedelta(days=365)
+        cutoff_dt = datetime.datetime.now() - _VALIDATION_SIZE
         df = df[df[GAME_DT_COLUMN] > cutoff_dt]
         df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
         df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
