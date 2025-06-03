@@ -40,8 +40,9 @@ from sportsball.data.player_model import (
     PLAYER_GOAL_ASSISTS_COLUMN, PLAYER_GOALS_COLUMN, PLAYER_HANDBALLS_COLUMN,
     PLAYER_HIT_OUTS_COLUMN, PLAYER_INSIDES_COLUMN, PLAYER_KICKS_COLUMN,
     PLAYER_MARKS_COLUMN, PLAYER_MARKS_INSIDE_COLUMN,
-    PLAYER_ONE_PERCENTERS_COLUMN, PLAYER_REBOUNDS_COLUMN,
-    PLAYER_TACKLES_COLUMN, PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
+    PLAYER_ONE_PERCENTERS_COLUMN, PLAYER_PERCENTAGE_PLAYED_COLUMN,
+    PLAYER_REBOUNDS_COLUMN, PLAYER_TACKLES_COLUMN,
+    PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -62,7 +63,9 @@ from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
                                         TEAM_GOALS_COLUMN,
                                         TEAM_HANDBALLS_COLUMN,
                                         TEAM_HIT_OUTS_COLUMN,
-                                        TEAM_INSIDES_COLUMN, TEAM_MARKS_COLUMN,
+                                        TEAM_INSIDES_COLUMN,
+                                        TEAM_LENGTH_BEHIND_WINNER_COLUMN,
+                                        TEAM_MARKS_COLUMN,
                                         TEAM_MARKS_INSIDE_COLUMN,
                                         TEAM_ONE_PERCENTERS_COLUMN,
                                         TEAM_REBOUNDS_COLUMN,
@@ -288,6 +291,7 @@ class Strategy:
                             TEAM_ONE_PERCENTERS_COLUMN,
                             TEAM_BOUNCES_COLUMN,
                             TEAM_GOAL_ASSISTS_COLUMN,
+                            TEAM_LENGTH_BEHIND_WINNER_COLUMN,
                         ]
                     ],
                     team_column_prefix(i),
@@ -394,6 +398,7 @@ class Strategy:
                                 PLAYER_ONE_PERCENTERS_COLUMN,
                                 PLAYER_BOUNCES_COLUMN,
                                 PLAYER_GOAL_ASSISTS_COLUMN,
+                                PLAYER_PERCENTAGE_PLAYED_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -420,6 +425,12 @@ class Strategy:
                             [player_column_prefix(i, x), PLAYER_TURNOVERS_COLUMN]
                         ),
                         team_identifier_column=team_identifier_column(i),
+                        birth_date_column=DELIMITER.join(
+                            [
+                                player_column_prefix(i, x),
+                                PLAYER_BIRTH_DATE_COLUMN,
+                            ]
+                        ),
                     )
                     for x in range(player_count)
                 ]
