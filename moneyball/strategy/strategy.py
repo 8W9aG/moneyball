@@ -41,8 +41,8 @@ from sportsball.data.player_model import (
     PLAYER_HIT_OUTS_COLUMN, PLAYER_INSIDES_COLUMN, PLAYER_KICKS_COLUMN,
     PLAYER_MARKS_COLUMN, PLAYER_MARKS_INSIDE_COLUMN,
     PLAYER_ONE_PERCENTERS_COLUMN, PLAYER_PERCENTAGE_PLAYED_COLUMN,
-    PLAYER_REBOUNDS_COLUMN, PLAYER_TACKLES_COLUMN,
-    PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
+    PLAYER_REBOUNDS_COLUMN, PLAYER_SECONDS_PLAYED_COLUMN,
+    PLAYER_TACKLES_COLUMN, PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -57,6 +57,7 @@ from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
                                         TEAM_CONTESTED_MARKS_COLUMN,
                                         TEAM_CONTESTED_POSSESSIONS_COLUMN,
                                         TEAM_DISPOSALS_COLUMN,
+                                        TEAM_FIELD_GOALS_PERCENTAGE_COLUMN,
                                         TEAM_FREE_KICKS_AGAINST_COLUMN,
                                         TEAM_FREE_KICKS_FOR_COLUMN,
                                         TEAM_GOAL_ASSISTS_COLUMN,
@@ -292,6 +293,7 @@ class Strategy:
                             TEAM_BOUNCES_COLUMN,
                             TEAM_GOAL_ASSISTS_COLUMN,
                             TEAM_LENGTH_BEHIND_WINNER_COLUMN,
+                            TEAM_FIELD_GOALS_PERCENTAGE_COLUMN,
                         ]
                     ],
                     team_column_prefix(i),
@@ -399,6 +401,7 @@ class Strategy:
                                 PLAYER_BOUNCES_COLUMN,
                                 PLAYER_GOAL_ASSISTS_COLUMN,
                                 PLAYER_PERCENTAGE_PLAYED_COLUMN,
+                                PLAYER_SECONDS_PLAYED_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
