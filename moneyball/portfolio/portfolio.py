@@ -124,9 +124,9 @@ class Portfolio:
             returns = returns.loc[returns.index.date >= from_date]  # type: ignore
         for col in returns.columns.values:
             series = returns[col]
-            series = series[
-                series.index >= series.where(series != 0.0).first_valid_index()
-            ]
+            first_index = series.where(series != 0.0).first_valid_index()
+            if first_index is not None:
+                series = series[series.index >= first_index]
             render_series(series)
 
     def next_bets(self) -> NextBets:
@@ -170,12 +170,26 @@ class Portfolio:
                     if v is not None:
                         continue
                     logging.info("Row %s Feature %s has null value", str(row[0]), k)
+
+                best_idx = 0
+                best_prob = 0.0
+                for i in range(team_count):
+                    prob = row_dict[prob_col + str(i)]
+                    if prob > best_prob:
+                        best_idx = i
+                        best_prob = prob
+                o = row_dict[f"teams/{best_idx}_odds"]
+                b = o - 1.0
+                q = 1.0 - best_prob
+                kelly_fraction = (b * best_prob - q) / b
+
                 bets["bets"].append(
                     {
                         "strategy": strategy.name,
                         "league": row_dict[LEAGUE_COLUMN],
                         "kelly": kelly_ratio,
                         "weight": self._weights[strategy.name],
+                        "amount": kelly_fraction,
                         "teams": [
                             {
                                 "name": row_dict[team_name_column(x)],
@@ -206,6 +220,7 @@ class Portfolio:
                             for x in range(team_count)
                         ],
                         "dt": row_dict[GAME_DT_COLUMN].isoformat(),
+                        "row": row_dict,
                     }
                 )
         return bets

@@ -43,38 +43,25 @@ from sportsball.data.player_model import (
     PLAYER_MARKS_INSIDE_COLUMN, PLAYER_ONE_PERCENTERS_COLUMN,
     PLAYER_PERCENTAGE_PLAYED_COLUMN, PLAYER_REBOUNDS_COLUMN,
     PLAYER_SECONDS_PLAYED_COLUMN, PLAYER_TACKLES_COLUMN,
+    PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
     PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
-from sportsball.data.team_model import (FIELD_GOALS_ATTEMPTED_COLUMN,
-                                        FIELD_GOALS_COLUMN, KICKS_COLUMN,
-                                        OFFENSIVE_REBOUNDS_COLUMN,
-                                        TEAM_BEHINDS_COLUMN,
-                                        TEAM_BOUNCES_COLUMN,
-                                        TEAM_BROWNLOW_VOTES_COLUMN,
-                                        TEAM_CLANGERS_COLUMN,
-                                        TEAM_CLEARANCES_COLUMN,
-                                        TEAM_CONTESTED_MARKS_COLUMN,
-                                        TEAM_CONTESTED_POSSESSIONS_COLUMN,
-                                        TEAM_DISPOSALS_COLUMN,
-                                        TEAM_FIELD_GOALS_PERCENTAGE_COLUMN,
-                                        TEAM_FREE_KICKS_AGAINST_COLUMN,
-                                        TEAM_FREE_KICKS_FOR_COLUMN,
-                                        TEAM_GOAL_ASSISTS_COLUMN,
-                                        TEAM_GOALS_COLUMN,
-                                        TEAM_HANDBALLS_COLUMN,
-                                        TEAM_HIT_OUTS_COLUMN,
-                                        TEAM_INSIDES_COLUMN,
-                                        TEAM_LENGTH_BEHIND_WINNER_COLUMN,
-                                        TEAM_MARKS_COLUMN,
-                                        TEAM_MARKS_INSIDE_COLUMN,
-                                        TEAM_ONE_PERCENTERS_COLUMN,
-                                        TEAM_REBOUNDS_COLUMN,
-                                        TEAM_TACKLES_COLUMN,
-                                        TEAM_THREE_POINT_FIELD_GOALS_COLUMN,
-                                        TEAM_UNCONTESTED_POSSESSIONS_COLUMN,
-                                        TURNOVERS_COLUMN)
+from sportsball.data.team_model import (
+    FIELD_GOALS_ATTEMPTED_COLUMN, FIELD_GOALS_COLUMN, KICKS_COLUMN,
+    OFFENSIVE_REBOUNDS_COLUMN, TEAM_BEHINDS_COLUMN, TEAM_BOUNCES_COLUMN,
+    TEAM_BROWNLOW_VOTES_COLUMN, TEAM_CLANGERS_COLUMN, TEAM_CLEARANCES_COLUMN,
+    TEAM_CONTESTED_MARKS_COLUMN, TEAM_CONTESTED_POSSESSIONS_COLUMN,
+    TEAM_DISPOSALS_COLUMN, TEAM_FIELD_GOALS_PERCENTAGE_COLUMN,
+    TEAM_FREE_KICKS_AGAINST_COLUMN, TEAM_FREE_KICKS_FOR_COLUMN,
+    TEAM_GOAL_ASSISTS_COLUMN, TEAM_GOALS_COLUMN, TEAM_HANDBALLS_COLUMN,
+    TEAM_HIT_OUTS_COLUMN, TEAM_INSIDES_COLUMN,
+    TEAM_LENGTH_BEHIND_WINNER_COLUMN, TEAM_MARKS_COLUMN,
+    TEAM_MARKS_INSIDE_COLUMN, TEAM_ONE_PERCENTERS_COLUMN, TEAM_REBOUNDS_COLUMN,
+    TEAM_TACKLES_COLUMN, TEAM_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
+    TEAM_THREE_POINT_FIELD_GOALS_COLUMN, TEAM_UNCONTESTED_POSSESSIONS_COLUMN,
+    TURNOVERS_COLUMN)
 from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.bet import Bet
 from sportsfeatures.columns import DELIMITER as SPORTSFEATURES_DELIMITER
@@ -169,7 +156,7 @@ class Strategy:
                 self._name,
             )
             value = calculate_value(returns)
-            if value > max_return:
+            if value > max_return or max_kelly == 0.0:
                 max_return = value
                 max_kelly = test_kelly_ratio
         self._returns = calculate_returns(max_kelly, df.copy(), self._name)
@@ -297,6 +284,7 @@ class Strategy:
                             TEAM_LENGTH_BEHIND_WINNER_COLUMN,
                             TEAM_FIELD_GOALS_PERCENTAGE_COLUMN,
                             TEAM_THREE_POINT_FIELD_GOALS_COLUMN,
+                            TEAM_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
                         ]
                     ],
                     team_column_prefix(i),
@@ -406,6 +394,7 @@ class Strategy:
                                 PLAYER_PERCENTAGE_PLAYED_COLUMN,
                                 PLAYER_SECONDS_PLAYED_COLUMN,
                                 PLAYER_FIELD_GOALS_PERCENTAGE_COLUMN,
+                                PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
