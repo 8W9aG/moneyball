@@ -43,6 +43,7 @@ from sportsball.data.player_model import (
     PLAYER_MARKS_INSIDE_COLUMN, PLAYER_ONE_PERCENTERS_COLUMN,
     PLAYER_PERCENTAGE_PLAYED_COLUMN, PLAYER_REBOUNDS_COLUMN,
     PLAYER_SECONDS_PLAYED_COLUMN, PLAYER_TACKLES_COLUMN,
+    PLAYER_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
     PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
@@ -60,8 +61,9 @@ from sportsball.data.team_model import (
     TEAM_LENGTH_BEHIND_WINNER_COLUMN, TEAM_MARKS_COLUMN,
     TEAM_MARKS_INSIDE_COLUMN, TEAM_ONE_PERCENTERS_COLUMN, TEAM_REBOUNDS_COLUMN,
     TEAM_TACKLES_COLUMN, TEAM_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
-    TEAM_THREE_POINT_FIELD_GOALS_COLUMN, TEAM_UNCONTESTED_POSSESSIONS_COLUMN,
-    TURNOVERS_COLUMN)
+    TEAM_THREE_POINT_FIELD_GOALS_COLUMN,
+    TEAM_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN,
+    TEAM_UNCONTESTED_POSSESSIONS_COLUMN, TURNOVERS_COLUMN)
 from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.bet import Bet
 from sportsfeatures.columns import DELIMITER as SPORTSFEATURES_DELIMITER
@@ -285,6 +287,7 @@ class Strategy:
                             TEAM_FIELD_GOALS_PERCENTAGE_COLUMN,
                             TEAM_THREE_POINT_FIELD_GOALS_COLUMN,
                             TEAM_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
+                            TEAM_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN,
                         ]
                     ],
                     team_column_prefix(i),
@@ -395,6 +398,7 @@ class Strategy:
                                 PLAYER_SECONDS_PLAYED_COLUMN,
                                 PLAYER_FIELD_GOALS_PERCENTAGE_COLUMN,
                                 PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
+                                PLAYER_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
