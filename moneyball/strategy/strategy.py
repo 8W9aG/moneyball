@@ -45,6 +45,7 @@ from sportsball.data.player_model import (
     PLAYER_SECONDS_PLAYED_COLUMN, PLAYER_TACKLES_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
+    PLAYER_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN,
     PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
@@ -56,8 +57,8 @@ from sportsball.data.team_model import (
     TEAM_CONTESTED_MARKS_COLUMN, TEAM_CONTESTED_POSSESSIONS_COLUMN,
     TEAM_DISPOSALS_COLUMN, TEAM_FIELD_GOALS_PERCENTAGE_COLUMN,
     TEAM_FREE_KICKS_AGAINST_COLUMN, TEAM_FREE_KICKS_FOR_COLUMN,
-    TEAM_GOAL_ASSISTS_COLUMN, TEAM_GOALS_COLUMN, TEAM_HANDBALLS_COLUMN,
-    TEAM_HIT_OUTS_COLUMN, TEAM_INSIDES_COLUMN,
+    TEAM_FREE_THROWS_COLUMN, TEAM_GOAL_ASSISTS_COLUMN, TEAM_GOALS_COLUMN,
+    TEAM_HANDBALLS_COLUMN, TEAM_HIT_OUTS_COLUMN, TEAM_INSIDES_COLUMN,
     TEAM_LENGTH_BEHIND_WINNER_COLUMN, TEAM_MARKS_COLUMN,
     TEAM_MARKS_INSIDE_COLUMN, TEAM_ONE_PERCENTERS_COLUMN, TEAM_REBOUNDS_COLUMN,
     TEAM_TACKLES_COLUMN, TEAM_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
@@ -288,6 +289,7 @@ class Strategy:
                             TEAM_THREE_POINT_FIELD_GOALS_COLUMN,
                             TEAM_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
                             TEAM_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN,
+                            TEAM_FREE_THROWS_COLUMN,
                         ]
                     ],
                     team_column_prefix(i),
@@ -399,6 +401,7 @@ class Strategy:
                                 PLAYER_FIELD_GOALS_PERCENTAGE_COLUMN,
                                 PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
                                 PLAYER_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
+                                PLAYER_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -449,7 +452,7 @@ class Strategy:
             df.attrs[str(FieldType.CATEGORICAL)],
             use_bets_features=False,
             use_news_features=True,
-            datetime_columns=None,
+            datetime_columns=datetime_columns,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed
