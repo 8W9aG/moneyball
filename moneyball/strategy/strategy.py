@@ -449,7 +449,7 @@ class Strategy:
             df.attrs[str(FieldType.CATEGORICAL)],
             use_bets_features=False,
             use_news_features=True,
-            datetime_columns=datetime_columns,
+            datetime_columns=None,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed
