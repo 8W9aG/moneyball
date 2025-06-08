@@ -465,6 +465,7 @@ class Strategy:
             use_bets_features=False,
             use_news_features=True,
             datetime_columns=datetime_columns,
+            use_players_feature=False,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed
