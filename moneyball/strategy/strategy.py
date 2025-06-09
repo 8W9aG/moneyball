@@ -48,7 +48,7 @@ from sportsball.data.player_model import (
     PLAYER_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN,
-    PLAYER_UNCONTESTED_POSSESSIONS_COLUMN)
+    PLAYER_UNCONTESTED_POSSESSIONS_COLUMN, PLAYER_TOTAL_REBOUNDS_COLUMN)
 from sportsball.data.player_model import \
     TURNOVERS_COLUMN as PLAYER_TURNOVERS_COLUMN  # type: ignore
 from sportsball.data.team_model import ASSISTS_COLUMN  # type: ignore
@@ -68,7 +68,7 @@ from sportsball.data.team_model import (
     TEAM_TACKLES_COLUMN, TEAM_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
     TEAM_THREE_POINT_FIELD_GOALS_COLUMN,
     TEAM_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN, TEAM_TOTAL_REBOUNDS_COLUMN,
-    TEAM_UNCONTESTED_POSSESSIONS_COLUMN, TURNOVERS_COLUMN)
+    TEAM_UNCONTESTED_POSSESSIONS_COLUMN, TURNOVERS_COLUMN, TEAM_STEALS_COLUMN)
 from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.bet import Bet
 from sportsfeatures.columns import DELIMITER as SPORTSFEATURES_DELIMITER
@@ -298,6 +298,7 @@ class Strategy:
                             TEAM_FREE_THROWS_PERCENTAGE_COLUMN,
                             TEAM_DEFENSIVE_REBOUNDS_COLUMN,
                             TEAM_TOTAL_REBOUNDS_COLUMN,
+                            TEAM_STEALS_COLUMN,
                         ]
                     ],
                     team_column_prefix(i),
@@ -414,6 +415,7 @@ class Strategy:
                                 PLAYER_FREE_THROWS_ATTEMPTED_COLUMN,
                                 PLAYER_FREE_THROWS_PERCENTAGE_COLUMN,
                                 PLAYER_DEFENSIVE_REBOUNDS_COLUMN,
+                                PLAYER_TOTAL_REBOUNDS_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -460,7 +462,7 @@ class Strategy:
             df,
             GAME_DT_COLUMN,
             identifiers,
-            [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]],
+            [None] + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]] + [datetime.timedelta(days=i * 7) for i in [2, 4, 8, 16]],
             df.attrs[str(FieldType.CATEGORICAL)],
             use_bets_features=False,
             use_news_features=True,
