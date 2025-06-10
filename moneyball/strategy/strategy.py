@@ -467,7 +467,7 @@ class Strategy:
             identifiers,
             [None]
             + [datetime.timedelta(days=365 * i) for i in [1, 2, 4, 8]]
-            + [datetime.timedelta(days=i * 7) for i in [2, 4, 8, 16]],
+            + [datetime.timedelta(days=i * 7) for i in [2, 4]],
             df.attrs[str(FieldType.CATEGORICAL)],
             use_bets_features=False,
             use_news_features=True,
