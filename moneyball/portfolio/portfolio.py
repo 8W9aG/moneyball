@@ -193,7 +193,8 @@ class Portfolio:
                         "teams": [
                             {
                                 "name": row_dict[team_name_column(x)],
-                                "probability": row_dict[prob_col + str(x)],
+                                # We should fix this as well
+                                "probability": row_dict[prob_col + str((x + 1) % 2)],
                                 "players": [
                                     {
                                         "name": row_dict.get(
