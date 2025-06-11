@@ -37,7 +37,8 @@ def augment_kelly_fractions(
     kelly_fraction = (b * p - q) / b
     kelly_fraction = np.clip(kelly_fraction, 0, 1)
     df["kelly_fraction"] = kelly_fraction
-    df["bet_won"] = best_idx == wins_idx
+    # Temporary fix while we sort out home wins vs indexes
+    df["bet_won"] = best_idx != wins_idx
     df["bet_odds"] = o
     df = df.dropna(subset=["kelly_fraction", "bet_won", "bet_odds"])
 

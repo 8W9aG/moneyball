@@ -32,18 +32,21 @@ class TestKellyFraction(unittest.TestCase):
             }
         )
         df = augment_kelly_fractions(df, 2, HOME_WIN_COLUMN)
+        #df.to_parquet("kelly_fraction.parquet")
         expected_df = pd.read_parquet(os.path.join(self.dir, "kelly_fraction.parquet"))
         assert_frame_equal(df, expected_df)
 
     def test_kelly_fraction_dt_index(self):
         df = pd.read_parquet(os.path.join(self.dir, "returns.parquet"))
         df = augment_kelly_fractions(df, 2, HOME_WIN_COLUMN)
+        #df.to_parquet("kelly_fraction_returns.parquet")
         expected_df = pd.read_parquet(os.path.join(self.dir, "kelly_fraction_returns.parquet"))
         assert_frame_equal(df, expected_df)
 
     def test_calculate_returns(self):
         df = pd.read_parquet(os.path.join(self.dir, "kelly_fraction_returns.parquet"))
         returns = calculate_returns(0.5, df, "test")
+        #returns.to_frame().to_parquet("expected_returns.parquet")
         expected_df = pd.read_parquet(os.path.join(self.dir, "expected_returns.parquet"))
         assert_frame_equal(returns.to_frame(), expected_df)
 
