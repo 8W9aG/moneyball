@@ -23,10 +23,14 @@ def augment_kelly_fractions(
     )
     odds_cols = [f"teams/{x}_odds" for x in range(teams)]
     prob_cols = [x for x in df.columns.values if x.startswith(prob_col)]
+    # Again, flip this shit
+    probs_1 = df[prob_cols[0]].tolist()
+    probs_2 = df[prob_cols[1]].tolist()
+    df[prob_cols[0]] = probs_2
+    df[prob_cols[1]] = probs_1
     df = df[df[GAME_DT_COLUMN].dt.year >= datetime.datetime.now().year - 1]
 
-    # Temporary fix while we sort out home wins vs indexes
-    probs = np.flip(df[prob_cols].to_numpy())
+    probs = df[prob_cols].to_numpy()
     odds = df[odds_cols].to_numpy()
     points = df[points_cols].to_numpy()
     best_idx = probs.argmax(axis=1)
