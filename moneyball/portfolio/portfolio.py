@@ -139,10 +139,9 @@ class Portfolio:
                 list(feature_importances.keys()),
                 key=datetime.datetime.fromisoformat,
             )[-1]
+            used_feature_names = feature_importances[high_feature_importance_dt]
             bets["feature_importances"][strategy.name] = {
-                high_feature_importance_dt: feature_importances[
-                    high_feature_importance_dt
-                ]
+                high_feature_importance_dt: used_feature_names
             }
             next_df.to_parquet(
                 os.path.join(self._name, f"next_df_{strategy.name}.parquet")
@@ -221,7 +220,9 @@ class Portfolio:
                             for x in range(team_count)
                         ],
                         "dt": row_dict[GAME_DT_COLUMN].isoformat(),
-                        "row": row_dict,
+                        "row": {
+                            k: v for k, v in row_dict.items() if k in used_feature_names
+                        },
                     }
                 )
         return bets
