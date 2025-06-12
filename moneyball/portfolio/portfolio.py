@@ -123,7 +123,7 @@ class Portfolio:
         if from_date is not None:
             returns = returns.loc[returns.index.date >= from_date]  # type: ignore
         for col in returns.columns.values:
-            series = returns[col]
+            series = returns[col].dropna()
             first_index = series.where(series != 0.0).first_valid_index()
             if first_index is not None:
                 series = series[series.index >= first_index]
