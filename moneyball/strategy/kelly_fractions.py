@@ -87,4 +87,6 @@ def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Ser
 
 def calculate_value(ret: pd.Series) -> float:
     """Calculates the value of the returns."""
+    if abs(empyrical.max_drawdown(ret)) >= 1.0:
+        return 0.0
     return empyrical.calmar_ratio(ret)  # type: ignore
