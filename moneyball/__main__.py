@@ -103,7 +103,7 @@ def main() -> None:
                 )
             portfolio = Portfolio(args.name)
             bets = portfolio.next_bets()
-            sys.stdout.write(json.dumps(bets))
+            sys.stdout.write(json.dumps(bets, cls=DFSONEncoder))
             if args.output is not None:
                 with open(args.output, "w", encoding="utf8") as handle:
                     json.dump(bets, handle, cls=DFSONEncoder)
