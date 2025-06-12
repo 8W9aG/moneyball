@@ -25,7 +25,8 @@ def augment_kelly_fractions(
     prob_cols = [x for x in df.columns.values if x.startswith(prob_col)]
     df = df[df[GAME_DT_COLUMN].dt.year >= datetime.datetime.now().year - 1]
 
-    probs = df[prob_cols].to_numpy()
+    # Temporary fix while we sort out home wins vs indexes
+    probs = np.flip(df[prob_cols].to_numpy())
     odds = df[odds_cols].to_numpy()
     points = df[points_cols].to_numpy()
     best_idx = probs.argmax(axis=1)
@@ -37,8 +38,7 @@ def augment_kelly_fractions(
     kelly_fraction = (b * p - q) / b
     kelly_fraction = np.clip(kelly_fraction, 0, 1)
     df["kelly_fraction"] = kelly_fraction
-    # Temporary fix while we sort out home wins vs indexes
-    df["bet_won"] = best_idx != wins_idx
+    df["bet_won"] = best_idx == wins_idx
     df["bet_odds"] = o
     df = df.dropna(subset=["kelly_fraction", "bet_won", "bet_odds"])
 
