@@ -13,6 +13,7 @@ from sportsball.loglevel import LogLevel  # type: ignore
 from . import __VERSION__
 from .function import Function
 from .portfolio import Portfolio
+from .portfolio.df_encoder import DFSONEncoder
 from .strategy import Strategy
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -105,7 +106,7 @@ def main() -> None:
             sys.stdout.write(json.dumps(bets))
             if args.output is not None:
                 with open(args.output, "w", encoding="utf8") as handle:
-                    json.dump(bets, handle)
+                    json.dump(bets, handle, cls=DFSONEncoder)
         case _:
             raise ValueError(f"Unrecognised function: {args.function}")
 
