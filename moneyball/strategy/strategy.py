@@ -44,8 +44,9 @@ from sportsball.data.player_model import (
     PLAYER_HANDBALLS_COLUMN, PLAYER_HIT_OUTS_COLUMN, PLAYER_INSIDES_COLUMN,
     PLAYER_KICKS_COLUMN, PLAYER_MARKS_COLUMN, PLAYER_MARKS_INSIDE_COLUMN,
     PLAYER_ONE_PERCENTERS_COLUMN, PLAYER_PERCENTAGE_PLAYED_COLUMN,
-    PLAYER_PERSONAL_FOULS_COLUMN, PLAYER_POINTS_COLUMN, PLAYER_REBOUNDS_COLUMN,
-    PLAYER_SECONDS_PLAYED_COLUMN, PLAYER_STEALS_COLUMN, PLAYER_TACKLES_COLUMN,
+    PLAYER_PERSONAL_FOULS_COLUMN, PLAYER_POINT_DIFFERENTIAL_COLUMN,
+    PLAYER_POINTS_COLUMN, PLAYER_REBOUNDS_COLUMN, PLAYER_SECONDS_PLAYED_COLUMN,
+    PLAYER_STEALS_COLUMN, PLAYER_TACKLES_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_ATTEMPTED_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_COLUMN,
     PLAYER_THREE_POINT_FIELD_GOALS_PERCENTAGE_COLUMN,
@@ -441,6 +442,7 @@ class Strategy:
                                 PLAYER_PERSONAL_FOULS_COLUMN,
                                 PLAYER_POINTS_COLUMN,
                                 PLAYER_GAME_SCORE_COLUMN,
+                                PLAYER_POINT_DIFFERENTIAL_COLUMN,
                             ]
                         ],
                         player_column_prefix(i, x),
@@ -494,7 +496,7 @@ class Strategy:
             use_bets_features=False,
             use_news_features=True,
             datetime_columns=datetime_columns,
-            # use_players_feature=False,
+            use_players_feature=True,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed
