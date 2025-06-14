@@ -90,7 +90,7 @@ from .features.columns import (find_news_count, find_odds_count,
 from .kelly_fractions import (augment_kelly_fractions, calculate_returns,
                               calculate_value)
 
-HOME_WIN_COLUMN = "home_win"
+AWAY_WIN_COLUMN = "away_win"
 
 _DF_FILENAME = "df.parquet.gzip"
 _VALIDATION_SIZE = datetime.timedelta(days=365)
@@ -155,7 +155,7 @@ class Strategy:
         df[points_cols] = main_df[points_cols].to_numpy()
         cutoff_dt = pd.to_datetime(datetime.datetime.now() - _VALIDATION_SIZE).date()
         df = df[df[GAME_DT_COLUMN].dt.date > cutoff_dt]
-        df = augment_kelly_fractions(df, len(points_cols), HOME_WIN_COLUMN)
+        df = augment_kelly_fractions(df, len(points_cols))
         df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
         max_return = 0.0
         max_kelly = 0.0
@@ -183,11 +183,24 @@ class Strategy:
         training_cols = df.attrs[str(FieldType.POINTS)]
         x_df = self._process()
         y = df[training_cols]
-        y[HOME_WIN_COLUMN] = np.argmax(y.to_numpy(), axis=1)
+        teams = find_team_count(df)
+
+        def make_y() -> pd.Series | pd.DataFrame:
+            nonlocal y
+            y_max = np.argmax(y.to_numpy(), axis=1)
+            if teams == 2:
+                y[AWAY_WIN_COLUMN] = y_max
+                y[AWAY_WIN_COLUMN] = y[AWAY_WIN_COLUMN].astype(bool)
+                return y[AWAY_WIN_COLUMN]
+            for i in range(teams):
+                y[DELIMITER.join(["team", str(i), "win"])] = y_max == i
+            return y.drop(columns=training_cols)  # type: ignore
+
+        y = make_y()
         x_df = x_df.drop(columns=training_cols)
         x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
         self._wt.embedding_cols = self._calculate_embedding_columns(x_df)
-        self._wt.fit(x_df, y=y[HOME_WIN_COLUMN].astype(bool))
+        self._wt.fit(x_df, y=y)
 
     def predict(self) -> pd.DataFrame:
         """Predict the results from walk-forward."""
@@ -481,7 +494,7 @@ class Strategy:
             use_bets_features=False,
             use_news_features=True,
             datetime_columns=datetime_columns,
-            use_players_feature=False,
+            # use_players_feature=False,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed

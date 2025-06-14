@@ -8,26 +8,39 @@ import numpy as np
 import pandas as pd
 import wavetrainer as wt  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN
-from sportsfeatures.columns import DELIMITER
 
-from .features.columns import team_points_column
+from .features.columns import find_team_count, team_points_column
+
+KELLY_FRACTION_RATIO_COL_PREFIX = "kelly_fraction_ratio_"
+KELLY_FRACTION_COL_PREFIX = "kelly_fraction_"
+RETURN_MULTIPLIER_COL_PREFIX = "return_multiplier_"
+BET_WON_COL_PREFIX = "bet_won_"
+BET_ODDS_COL_PREFIX = "bet_odds_"
+ADJUSTED_FRACTION_COL_PREFIX = "adjusted_fraction_"
 
 
-def augment_kelly_fractions(
-    df: pd.DataFrame, teams: int, predictand_column: str
-) -> pd.DataFrame:
+def probability_columns(df: pd.DataFrame) -> list[str]:
+    """Probability columns generated."""
+    teams = find_team_count(df)
+    points_cols = [team_points_column(x) for x in range(teams)]
+    prob_cols = sorted(
+        [
+            x
+            for x in df.columns.values.tolist()
+            if x[:-1].endswith(wt.model.model.PROBABILITY_COLUMN_PREFIX)  # type: ignore
+        ]
+    )
+    if len(prob_cols) > len(points_cols):
+        prob_cols = [x for x in prob_cols if x.endswith("_1")]
+    return prob_cols
+
+
+def augment_kelly_fractions(df: pd.DataFrame, teams: int) -> pd.DataFrame:
     """Augment the dataframe with kelly fractions."""
     points_cols = [team_points_column(x) for x in range(teams)]
-    prob_col = DELIMITER.join(
-        [predictand_column, wt.model.model.PROBABILITY_COLUMN_PREFIX]  # type: ignore
-    )
+    prob_cols = probability_columns(df)
+
     odds_cols = [f"teams/{x}_odds" for x in range(teams)]
-    prob_cols = [x for x in df.columns.values if x.startswith(prob_col)]
-    # Again, flip this shit
-    probs_1 = df[prob_cols[0]].tolist()
-    probs_2 = df[prob_cols[1]].tolist()
-    df[prob_cols[0]] = probs_2
-    df[prob_cols[1]] = probs_1
     df = df[df[GAME_DT_COLUMN].dt.year >= datetime.datetime.now().year - 1]
 
     probs = df[prob_cols].to_numpy()
@@ -35,24 +48,32 @@ def augment_kelly_fractions(
     points = df[points_cols].to_numpy()
     best_idx = probs.argmax(axis=1)
     wins_idx = points.argmax(axis=1)
-    p = probs[np.arange(len(df)), best_idx]
-    o = odds[np.arange(len(df)), best_idx]
-    b = o - 1.0
-    q = 1.0 - p
-    kelly_fraction = (b * p - q) / b
-    kelly_fraction = np.clip(kelly_fraction, 0, 1)
-    df["kelly_fraction"] = kelly_fraction
-    df["bet_won"] = best_idx == wins_idx
-    df["bet_odds"] = o
-    df = df.dropna(subset=["kelly_fraction", "bet_won", "bet_odds"])
+    for i in range(len(points_cols)):
+        p = probs[np.arange(len(df)), i]
+        o = odds[np.arange(len(df)), i]
+        b = o - 1.0
+        q = 1.0 - p
+        kelly_fraction = (b * p - q) / b
+        kelly_fraction = np.clip(kelly_fraction, 0, 1)
+        df[KELLY_FRACTION_COL_PREFIX + str(i)] = kelly_fraction
+        df[BET_WON_COL_PREFIX + str(i)] = best_idx == wins_idx
+        df[BET_ODDS_COL_PREFIX + str(i)] = o
 
     def scale_fractions(group):
-        total = group["kelly_fraction"].sum()
-        if total > 1:
+        total = 0.0
+        for i in range(len(points_cols)):
+            total += group[KELLY_FRACTION_COL_PREFIX + str(i)].sum()
+        if total > 1.0:
             scaling_factor = 1 / total
-            group["adjusted_fraction"] = group["kelly_fraction"] * scaling_factor
+            for i in range(len(points_cols)):
+                group[ADJUSTED_FRACTION_COL_PREFIX + str(i)] = (
+                    group[KELLY_FRACTION_COL_PREFIX + str(i)] * scaling_factor
+                )
         else:
-            group["adjusted_fraction"] = group["kelly_fraction"]
+            for i in range(len(points_cols)):
+                group[ADJUSTED_FRACTION_COL_PREFIX + str(i)] = group[
+                    KELLY_FRACTION_COL_PREFIX + str(i)
+                ]
         return group
 
     # Check if the dt column is somehow in an index
@@ -70,18 +91,29 @@ def augment_kelly_fractions(
 
 def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Series:
     """Calculate the returns with a kelly ratio."""
-    df["kelly_fraction_ratio"] = df["adjusted_fraction"] * kelly_ratio
-    df["return_multiplier"] = (
-        np.where(
-            df["bet_won"],
-            1 + df["kelly_fraction_ratio"] * (df["bet_odds"] - 1),
-            1 - df["kelly_fraction_ratio"],
+    i = 0
+    while True:
+        kelly_fraction_ratio_col = KELLY_FRACTION_RATIO_COL_PREFIX + str(i)
+        if kelly_fraction_ratio_col not in df.columns.values.tolist():
+            break
+        df[kelly_fraction_ratio_col] = (
+            df[ADJUSTED_FRACTION_COL_PREFIX + str(i)] * kelly_ratio
         )
-        - 1.0
-    )
+        df[RETURN_MULTIPLIER_COL_PREFIX + str(i)] = (
+            np.where(
+                df[BET_WON_COL_PREFIX + str(i)],
+                1
+                + df[kelly_fraction_ratio_col] * (df[BET_ODDS_COL_PREFIX + str(i)] - 1),
+                1 - df[kelly_fraction_ratio_col],
+            )
+            - 1.0
+        )
+        i += 1
 
     # Convert net return to multiplier
-    df["return_with_base"] = df["return_multiplier"] + 1.0
+    df["return_with_base"] = (
+        df[[RETURN_MULTIPLIER_COL_PREFIX + str(x) for x in range(i)]].sum(axis=1) + 1.0
+    )
 
     # Aggregate per day by multiplying
     daily_return = df.groupby(df.index)["return_with_base"].prod() - 1.0

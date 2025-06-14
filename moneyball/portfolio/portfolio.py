@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import pyfolio as pf  # type: ignore
 import riskfolio as rp  # type: ignore
-import wavetrainer as wt  # type: ignore
 from fullmonte import plot, simulate  # type: ignore
 from sportsball.data.game_model import GAME_DT_COLUMN  # type: ignore
 from sportsball.data.game_model import LEAGUE_COLUMN
@@ -23,7 +22,8 @@ from ..strategy.features.columns import (find_player_count, find_team_count,
                                          player_column_prefix,
                                          team_identifier_column,
                                          team_name_column)
-from ..strategy.strategy import HOME_WIN_COLUMN, Strategy
+from ..strategy.kelly_fractions import probability_columns
+from ..strategy.strategy import Strategy
 from .next_bets import NextBets
 
 _PORTFOLIO_FILENAME = "portfolio.json"
@@ -132,9 +132,9 @@ class Portfolio:
     def next_bets(self) -> NextBets:
         """Find the strategies next bet information."""
         bets: NextBets = {"bets": [], "feature_importances": {}}
-        prob_col = "_".join([HOME_WIN_COLUMN, wt.model.model.PROBABILITY_COLUMN_PREFIX])  # type: ignore
         for strategy in self._strategies:
             next_df, feature_importances, kelly_ratio = strategy.next()
+            prob_cols = probability_columns(next_df)
             high_feature_importance_dt = sorted(
                 list(feature_importances.keys()),
                 key=datetime.datetime.fromisoformat,
@@ -173,7 +173,7 @@ class Portfolio:
                 best_idx = 0
                 best_prob = 0.0
                 for i in range(team_count):
-                    prob = row_dict[prob_col + str(i)]
+                    prob = row_dict[prob_cols[i]]
                     if prob > best_prob:
                         best_idx = i
                         best_prob = prob
@@ -193,7 +193,7 @@ class Portfolio:
                             {
                                 "name": row_dict[team_name_column(x)],
                                 # We should fix this as well
-                                "probability": row_dict[prob_col + str((x + 1) % 2)],
+                                "probability": row_dict[prob_cols[x]],
                                 "players": [
                                     {
                                         "name": row_dict.get(
