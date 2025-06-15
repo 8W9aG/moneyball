@@ -124,6 +124,7 @@ class Strategy:
             test_size=datetime.timedelta(days=365 * 2),
             allowed_models={"catboost"},
             max_false_positive_reduction_steps=1,
+            correlation_chunk_size=5000,
         )
 
         self._returns = None
