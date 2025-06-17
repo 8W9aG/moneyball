@@ -74,12 +74,11 @@ from sportsball.data.team_model import (
     TEAM_UNCONTESTED_POSSESSIONS_COLUMN, TURNOVERS_COLUMN)
 from sportsball.data.venue_model import VENUE_ADDRESS_COLUMN
 from sportsfeatures.bet import Bet
-from sportsfeatures.columns import DELIMITER as SPORTSFEATURES_DELIMITER
+from sportsfeatures.embedding_column import is_embedding_column
 from sportsfeatures.entity_type import EntityType  # type: ignore
 from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.news import News
 from sportsfeatures.process import process  # type: ignore
-from textfeats.columns import EMBEDDING_COLUMN
 
 from .features.columns import (find_news_count, find_odds_count,
                                find_player_count, find_team_count,
@@ -504,16 +503,6 @@ class Strategy:
 
     def _calculate_embedding_columns(self, df: pd.DataFrame) -> list[list[str]]:
         team_count = find_team_count(df)
-
-        def is_embedding_column(col: str) -> bool:
-            col_split = col.split(SPORTSFEATURES_DELIMITER)
-            if len(col_split) < 3:
-                return False
-            if col_split[-2] != EMBEDDING_COLUMN:
-                return False
-            if not col_split[-1].isnumeric():
-                return False
-            return True
 
         embedding_cols = []
         for i in range(team_count):
