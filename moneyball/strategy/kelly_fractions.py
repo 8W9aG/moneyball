@@ -46,7 +46,6 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int) -> pd.DataFrame:
     probs = df[prob_cols].to_numpy()
     odds = df[odds_cols].to_numpy()
     points = df[points_cols].to_numpy()
-    best_idx = probs.argmax(axis=1)
     wins_idx = points.argmax(axis=1)
     for i in range(len(points_cols)):
         p = probs[np.arange(len(df)), i]
@@ -56,7 +55,7 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int) -> pd.DataFrame:
         kelly_fraction = (b * p - q) / b
         kelly_fraction = np.clip(kelly_fraction, 0, 1)
         df[KELLY_FRACTION_COL_PREFIX + str(i)] = kelly_fraction
-        df[BET_WON_COL_PREFIX + str(i)] = best_idx == wins_idx
+        df[BET_WON_COL_PREFIX + str(i)] = i == wins_idx
         df[BET_ODDS_COL_PREFIX + str(i)] = o
 
     def scale_fractions(group):
@@ -93,12 +92,11 @@ def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Ser
     """Calculate the returns with a kelly ratio."""
     i = 0
     while True:
+        adjusted_fraction_col = ADJUSTED_FRACTION_COL_PREFIX + str(i)
         kelly_fraction_ratio_col = KELLY_FRACTION_RATIO_COL_PREFIX + str(i)
-        if kelly_fraction_ratio_col not in df.columns.values.tolist():
+        if adjusted_fraction_col not in df.columns.values.tolist():
             break
-        df[kelly_fraction_ratio_col] = (
-            df[ADJUSTED_FRACTION_COL_PREFIX + str(i)] * kelly_ratio
-        )
+        df[kelly_fraction_ratio_col] = df[adjusted_fraction_col] * kelly_ratio
         df[RETURN_MULTIPLIER_COL_PREFIX + str(i)] = (
             np.where(
                 df[BET_WON_COL_PREFIX + str(i)],
