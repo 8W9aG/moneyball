@@ -1,8 +1,9 @@
 """The strategy class."""
 
-# pylint: disable=too-many-statements,line-too-long
+# pylint: disable=too-many-statements,line-too-long,invalid-unary-operand-type
 import datetime
 import hashlib
+import json
 import os
 
 import numpy as np
@@ -94,6 +95,8 @@ from .kelly_fractions import (augment_kelly_fractions, calculate_returns,
 AWAY_WIN_COLUMN = "away_win"
 
 _DF_FILENAME = "df.parquet.gzip"
+_CONFIG_FILENAME = "config.json"
+_PLACE_KEY = "place"
 _VALIDATION_SIZE = datetime.timedelta(days=365)
 
 
@@ -103,8 +106,9 @@ class Strategy:
     # pylint: disable=too-many-locals,too-many-instance-attributes
 
     _returns: pd.Series | None
+    _place: int
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, place: int | None = None) -> None:
         self._df = None
         self._name = name
         os.makedirs(name, exist_ok=True)
@@ -126,6 +130,17 @@ class Strategy:
             max_false_positive_reduction_steps=1,
             correlation_chunk_size=5000,
         )
+
+        # Load config
+        config_filename = os.path.join(name, _CONFIG_FILENAME)
+        if os.path.exists(config_filename) and place is None:
+            with open(config_filename, "r", encoding="utf8") as handle:
+                config = json.load(handle)
+                place = config.get(_PLACE_KEY)
+        elif place is not None:
+            with open(config_filename, "w", encoding="utf8") as handle:
+                json.dump({_PLACE_KEY: place}, handle)
+        self._place = place if place is not None else 1
 
         self._returns = None
 
@@ -189,13 +204,14 @@ class Strategy:
 
         def make_y() -> pd.Series | pd.DataFrame:
             nonlocal y
-            y_max = np.argmax(y.to_numpy(), axis=1)
             if teams == 2:
+                y_max = np.argmax(y.to_numpy(), axis=1)
                 y[AWAY_WIN_COLUMN] = y_max
                 y[AWAY_WIN_COLUMN] = y[AWAY_WIN_COLUMN].astype(bool)
                 return y[AWAY_WIN_COLUMN]
+            ind = np.argpartition(y.to_numpy(), -self._place)[-self._place :]
             for i in range(teams):
-                y[DELIMITER.join(["team", str(i), "win"])] = y_max == i
+                y[DELIMITER.join(["team", str(i), "win"])] = i in ind
             return y.drop(columns=training_cols)  # type: ignore
 
         y = make_y()
@@ -217,7 +233,8 @@ class Strategy:
         self._wt.embedding_cols = self._calculate_embedding_columns(x_df)
 
         # Ensure correct odds
-        future_rows = x_df[x_df[GAME_DT_COLUMN] > pd.Timestamp.now()]
+        today = (datetime.datetime.today() - datetime.timedelta(days=1)).date()
+        future_rows = x_df[x_df[GAME_DT_COLUMN].dt.date >= today]
         for idx, row in future_rows.iterrows():
             for team_id in range(find_team_count(x_df)):
                 odds_col = f"teams/{team_id}_odds"
@@ -230,7 +247,7 @@ class Strategy:
                                     f"Enter new odds for {odds_col} at row {idx} for team {row.get(name_col)} @ {row.get(GAME_DT_COLUMN)}: "
                                 )
                             )
-                            df.at[idx, odds_col] = new_odds
+                            x_df.at[idx, odds_col] = new_odds
                             break
                         except ValueError:
                             print("Invalid input. Please enter a numeric value.")

@@ -50,6 +50,13 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--place",
+        help="The placing to be considered a win.",
+        required=False,
+        default=1,
+        type=int,
+    )
+    parser.add_argument(
         "name",
         help="The name of the strategy/portfolio.",
     )
@@ -77,7 +84,7 @@ def main() -> None:
 
     match args.function:
         case Function.TRAIN:
-            strategy = Strategy(args.name)
+            strategy = Strategy(args.name, args.place)
             if not args.cached:
                 parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
                 parquet_bytes.seek(0)

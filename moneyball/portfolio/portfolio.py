@@ -181,6 +181,7 @@ class Portfolio:
                 b = o - 1.0
                 q = 1.0 - best_prob
                 kelly_fraction = (b * best_prob - q) / b
+                kelly_fraction = np.clip(kelly_fraction, 0, 1)
 
                 bets["bets"].append(
                     {
