@@ -11,6 +11,6 @@ pyfolio-reloaded>=0.9.8
 fullmonte>=0.0.4
 wavetrainer>=0.1.19
 riskfolio-lib>=7.0.0
-sportsfeatures>=0.0.98
+sportsfeatures>=0.0.99
 empyrical-reloaded>=0.5.11
 textfeats>=0.1.4
