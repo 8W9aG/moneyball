@@ -1,6 +1,6 @@
 """The strategy class."""
 
-# pylint: disable=too-many-statements
+# pylint: disable=too-many-statements,line-too-long
 import datetime
 import hashlib
 import os
@@ -86,7 +86,8 @@ from .features.columns import (find_news_count, find_odds_count,
                                odds_column_prefix, odds_odds_column,
                                player_column_prefix, player_identifier_column,
                                team_column_prefix, team_identifier_column,
-                               team_points_column, venue_identifier_column)
+                               team_name_column, team_points_column,
+                               venue_identifier_column)
 from .kelly_fractions import (augment_kelly_fractions, calculate_returns,
                               calculate_value)
 
@@ -214,6 +215,26 @@ class Strategy:
         x_df = x_df.drop(columns=training_cols, errors="ignore")
         x_df = x_df.drop(columns=df.attrs[str(FieldType.LOOKAHEAD)], errors="ignore")
         self._wt.embedding_cols = self._calculate_embedding_columns(x_df)
+
+        # Ensure correct odds
+        future_rows = x_df[x_df[GAME_DT_COLUMN] > pd.Timestamp.now()]
+        for idx, row in future_rows.iterrows():
+            for team_id in range(find_team_count(x_df)):
+                odds_col = f"teams/{team_id}_odds"
+                if pd.isna(row.get(odds_col)):
+                    while True:
+                        name_col = team_name_column(team_id)
+                        try:
+                            new_odds = float(
+                                input(
+                                    f"Enter new odds for {odds_col} at row {idx} for team {row.get(name_col)} @ {row.get(GAME_DT_COLUMN)}: "
+                                )
+                            )
+                            df.at[idx, odds_col] = new_odds
+                            break
+                        except ValueError:
+                            print("Invalid input. Please enter a numeric value.")
+
         x_df = self._wt.transform(x_df)
         for points_col in df.attrs[str(FieldType.POINTS)]:
             x_df[points_col] = df[points_col]
