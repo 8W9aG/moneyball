@@ -1,6 +1,7 @@
 """Helper functions for columns."""
 
 import pandas as pd
+from sportsball.data.coach_model import COACH_IDENTIFIER_COLUMN
 from sportsball.data.game_model import GAME_ATTENDANCE_COLUMN  # type: ignore
 from sportsball.data.game_model import (GAME_WEEK_COLUMN, TEAM_COLUMN_PREFIX,
                                         VENUE_COLUMN_PREFIX)
@@ -11,7 +12,8 @@ from sportsball.data.player_model import PLAYER_KICKS_COLUMN  # type: ignore
 from sportsball.data.player_model import (PLAYER_FUMBLES_LOST_COLUMN,
                                           PLAYER_IDENTIFIER_COLUMN)
 from sportsball.data.team_model import PLAYER_COLUMN_PREFIX  # type: ignore
-from sportsball.data.team_model import (NAME_COLUMN, TEAM_IDENTIFIER_COLUMN,
+from sportsball.data.team_model import (NAME_COLUMN, TEAM_COACHES_COLUMN,
+                                        TEAM_IDENTIFIER_COLUMN,
                                         TEAM_NEWS_COLUMN, TEAM_ODDS_COLUMN,
                                         TEAM_POINTS_COLUMN)
 from sportsball.data.venue_model import VENUE_IDENTIFIER_COLUMN  # type: ignore
@@ -61,9 +63,27 @@ def player_column_prefix(team_idx: int, player_idx: int | None) -> str:
 
 
 def player_identifier_column(team_idx: int, player_idx: int) -> str:
-    """Generate a team points column at a given index."""
+    """Generate a player identifier column at a given index."""
     return DELIMITER.join(
         [player_column_prefix(team_idx, player_idx), PLAYER_IDENTIFIER_COLUMN]
+    )
+
+
+def coach_column_prefix(team_idx: int, coach_idx: int) -> str:
+    """Generate the coach column prefix."""
+    return DELIMITER.join(
+        [
+            team_column_prefix(team_idx),
+            TEAM_COACHES_COLUMN,
+            str(coach_idx),
+        ]
+    )
+
+
+def coach_identifier_column(team_idx: int, coach_idx: int) -> str:
+    """Generate a coach identifier column."""
+    return DELIMITER.join(
+        [coach_column_prefix(team_idx, coach_idx), COACH_IDENTIFIER_COLUMN]
     )
 
 
@@ -95,6 +115,21 @@ def find_player_count(df: pd.DataFrame, team_count: int) -> int:
             break
         player_count += 1
     return player_count
+
+
+def find_coach_count(df: pd.DataFrame, team_count: int) -> int:
+    """Find the number of coaches in a team in the dataframe."""
+    coach_count = 0
+    while True:
+        found_coach = False
+        for i in range(team_count):
+            if coach_identifier_column(i, coach_count) not in df.columns.values:
+                continue
+            found_coach = True
+        if not found_coach:
+            break
+        coach_count += 1
+    return coach_count
 
 
 def venue_identifier_column() -> str:

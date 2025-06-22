@@ -81,14 +81,15 @@ from sportsfeatures.identifier import Identifier  # type: ignore
 from sportsfeatures.news import News
 from sportsfeatures.process import process  # type: ignore
 
-from .features.columns import (find_news_count, find_odds_count,
-                               find_player_count, find_team_count,
-                               news_column_prefix, news_summary_column,
-                               odds_column_prefix, odds_odds_column,
-                               player_column_prefix, player_identifier_column,
-                               team_column_prefix, team_identifier_column,
-                               team_name_column, team_points_column,
-                               venue_identifier_column)
+from .features.columns import (coach_column_prefix, coach_identifier_column,
+                               find_coach_count, find_news_count,
+                               find_odds_count, find_player_count,
+                               find_team_count, news_column_prefix,
+                               news_summary_column, odds_column_prefix,
+                               odds_odds_column, player_column_prefix,
+                               player_identifier_column, team_column_prefix,
+                               team_identifier_column, team_name_column,
+                               team_points_column, venue_identifier_column)
 from .kelly_fractions import (augment_kelly_fractions, calculate_returns,
                               calculate_value)
 
@@ -523,6 +524,18 @@ class Strategy:
                         [player_column_prefix(i, player_id), PLAYER_BIRTH_DATE_COLUMN]
                     )
                 )
+            coach_count = find_coach_count(df, i)
+            identifiers.extend(
+                [
+                    Identifier(
+                        entity_type=EntityType.COACH,
+                        column=coach_identifier_column(i, x),
+                        feature_columns=[],
+                        column_prefix=coach_column_prefix(i, x),
+                    )
+                    for x in range(coach_count)
+                ]
+            )
         df_processed = process(
             df,
             GAME_DT_COLUMN,
