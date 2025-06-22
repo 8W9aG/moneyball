@@ -532,6 +532,7 @@ class Strategy:
                         column=coach_identifier_column(i, x),
                         feature_columns=[],
                         column_prefix=coach_column_prefix(i, x),
+                        points_column=team_points_column(i),
                     )
                     for x in range(coach_count)
                 ]
