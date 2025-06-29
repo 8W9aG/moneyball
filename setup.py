@@ -23,7 +23,7 @@ def install_requires() -> typing.List[str]:
 
 setup(
     name='moneyball',
-    version='0.0.178',
+    version='0.0.179',
     description='A library for determining what bets to make.',
     long_description=long_description,
     long_description_content_type='text/markdown',
