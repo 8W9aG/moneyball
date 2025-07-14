@@ -139,7 +139,7 @@ class Portfolio:
                 list(feature_importances.keys()),
                 key=datetime.datetime.fromisoformat,
             )[-1]
-            used_feature_names = feature_importances[high_feature_importance_dt]
+            used_feature_names = feature_importances[high_feature_importance_dt][0]
             bets["feature_importances"][strategy.name] = {
                 high_feature_importance_dt: used_feature_names
             }
@@ -160,7 +160,7 @@ class Portfolio:
                         next_df[identifier_column] = None
                     if name_column not in next_df.columns.values.tolist():
                         next_df[name_column] = None
-            for row in next_df.itertuples(name=None):
+            for row_idx, row in enumerate(next_df.itertuples(name=None)):
                 row_dict = {
                     x: row[count + 1]
                     for count, x in enumerate(next_df.columns.values.tolist())
@@ -224,6 +224,9 @@ class Portfolio:
                         "row": {
                             k: v for k, v in row_dict.items() if k in used_feature_names
                         },
+                        "importances": feature_importances[high_feature_importance_dt][
+                            1
+                        ][row_idx],
                     }
                 )
         return bets

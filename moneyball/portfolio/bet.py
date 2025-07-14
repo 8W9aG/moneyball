@@ -15,5 +15,6 @@ Bet = TypedDict(
         "teams": list[Team],
         "dt": str,
         "row": dict[str, Any],
+        "importances": dict[str, float],
     },
 )
