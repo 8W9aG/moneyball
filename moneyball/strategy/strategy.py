@@ -452,7 +452,11 @@ class Strategy:
         end_dt = start_dt + datetime.timedelta(days=3.0)
         df = df[df[dt_column] > start_dt]
         df = df[df[dt_column] <= end_dt]
-        return df, self._wt.feature_importances(df=df), kelly_ratio
+        return (
+            df,
+            self._wt.feature_importances(df=df, latest_date_only=True),
+            kelly_ratio,
+        )
 
     def _process(self) -> pd.DataFrame:
         df = self.df
