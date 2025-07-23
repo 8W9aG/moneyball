@@ -300,6 +300,7 @@ class Strategy:
             allowed_models={"catboost"},
             max_false_positive_reduction_steps=1,
             correlation_chunk_size=5000,
+            insert_null=True,
         )
 
         # Load config
