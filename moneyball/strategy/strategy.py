@@ -269,6 +269,7 @@ _DF_FILENAME = "df.parquet.gzip"
 _CONFIG_FILENAME = "config.json"
 _PLACE_KEY = "place"
 _VALIDATION_SIZE = datetime.timedelta(days=365)
+_TEST_SIZE = datetime.timedelta(days=365)
 
 
 class Strategy:
@@ -296,7 +297,7 @@ class Strategy:
             validation_size=_VALIDATION_SIZE,
             max_train_timeout=datetime.timedelta(hours=12),
             cutoff_dt=datetime.datetime.now(tz=pytz.UTC),
-            test_size=datetime.timedelta(days=365 * 2),
+            test_size=_TEST_SIZE,
             allowed_models={"catboost"},
             max_false_positive_reduction_steps=1,
             correlation_chunk_size=5000,
