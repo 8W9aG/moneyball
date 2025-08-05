@@ -36,7 +36,7 @@ class TestKellyFraction(unittest.TestCase):
         )
 
     def test_kelly_fraction(self):
-        df = augment_kelly_fractions(self.mock_df, 2)
+        df = augment_kelly_fractions(self.mock_df, 2, 1.0)
         #df.to_parquet("kelly_fraction.parquet")
         expected_df = pd.read_parquet(os.path.join(self.dir, "kelly_fraction.parquet"))
         assert_frame_equal(df, expected_df)

@@ -35,7 +35,7 @@ def probability_columns(df: pd.DataFrame) -> list[str]:
     return prob_cols
 
 
-def augment_kelly_fractions(df: pd.DataFrame, teams: int) -> pd.DataFrame:
+def augment_kelly_fractions(df: pd.DataFrame, teams: int, eta: float) -> pd.DataFrame:
     """Augment the dataframe with kelly fractions."""
     points_cols = [team_points_column(x) for x in range(teams)]
     prob_cols = probability_columns(df)
@@ -49,6 +49,7 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int) -> pd.DataFrame:
     wins_idx = points.argmax(axis=1)
     for i in range(len(points_cols)):
         p = probs[np.arange(len(df)), i]
+        p = (p**eta) / ((p**eta) + ((1 - p) ** eta))
         o = odds[np.arange(len(df)), i]
         b = o - 1.0
         q = 1.0 - p

@@ -2,11 +2,14 @@
 
 # pylint: disable=too-many-statements,line-too-long,invalid-unary-operand-type,too-many-lines
 import datetime
+import functools
 import hashlib
 import json
 import os
+import pickle
 
 import numpy as np
+import optuna
 import pandas as pd
 import pytz
 import wavetrainer as wt  # type: ignore
@@ -332,6 +335,8 @@ _CONFIG_FILENAME = "config.json"
 _PLACE_KEY = "place"
 _VALIDATION_SIZE = datetime.timedelta(days=365)
 _TEST_SIZE = datetime.timedelta(days=365)
+_SAMPLER_FILENAME = "sampler.pkl"
+_KELLY_KEY = "kelly"
 
 
 class Strategy:
@@ -379,6 +384,20 @@ class Strategy:
 
         self._returns = None
 
+        storage_name = f"sqlite:///{name}/study.db"
+        sampler_file = os.path.join(name, _SAMPLER_FILENAME)
+        restored_sampler = None
+        if os.path.exists(sampler_file):
+            with open(sampler_file, "rb") as handle:
+                restored_sampler = pickle.load(handle)
+        self._study = optuna.create_study(
+            study_name=name,
+            storage=storage_name,
+            load_if_exists=True,
+            sampler=restored_sampler,
+            direction=optuna.study.StudyDirection.MAXIMIZE,
+        )
+
     @property
     def df(self) -> pd.DataFrame | None:
         """Fetch the dataframe currently being operated on."""
@@ -399,7 +418,7 @@ class Strategy:
         """Fetch the name of the strategy."""
         return self._name
 
-    def kelly_ratio(self, df: pd.DataFrame) -> float:
+    def find_returns(self, df: pd.DataFrame) -> pd.Series:
         """Find the best kelly ratio for this strategy."""
         main_df = self.df
         if main_df is None:
@@ -408,25 +427,40 @@ class Strategy:
         df[points_cols] = main_df[points_cols].to_numpy()
         cutoff_dt = pd.to_datetime(datetime.datetime.now() - _VALIDATION_SIZE).date()
         df = df[df[GAME_DT_COLUMN].dt.date > cutoff_dt]
-        df = augment_kelly_fractions(df, len(points_cols))
-        df.to_parquet(os.path.join(self._name, "returns_df.parquet.gzip"))
-        max_return = 0.0
-        max_kelly = 0.0
-        for i in range(100):
-            test_kelly_ratio = (100 - i) / 100.0
+
+        def trial_returns(
+            trial: optuna.Trial | optuna.trial.FrozenTrial, df: pd.DataFrame
+        ) -> pd.Series:
+            alpha = trial.suggest_float("alpha", 0.0, 2.0)
+            kelly_threshold = trial.suggest_float(_KELLY_KEY, 0.0, 1.0)
+
+            df = augment_kelly_fractions(df, len(points_cols), alpha)
             returns = calculate_returns(
-                test_kelly_ratio,
-                df.copy(),
+                kelly_threshold,
+                df,
                 self._name,
             )
-            value = calculate_value(returns)
-            if value > max_return or max_kelly == 0.0:
-                max_return = value
-                max_kelly = test_kelly_ratio
-        print(f"Max Kelly: {max_kelly}")
-        self._returns = calculate_returns(max_kelly, df.copy(), self._name)
+            return returns
 
-        return max_kelly
+        def run_trial(
+            trial: optuna.Trial | optuna.trial.FrozenTrial, df: pd.DataFrame
+        ) -> float:
+            returns = trial_returns(trial, df)
+            value = calculate_value(returns)
+            return value
+
+        if not self._study.trials:
+            self._study.optimize(
+                functools.partial(
+                    run_trial,
+                    df=df,
+                ),
+                n_trials=100,
+                timeout=60.0 * 60.0 * 5,
+                show_progress_bar=True,
+            )
+
+        return trial_returns(self._study.best_trial, df)
 
     def fit(self):
         """Fits the strategy to the dataset by walking forward."""
@@ -496,8 +530,7 @@ class Strategy:
     def returns(self) -> pd.Series:
         """Render the returns of the strategy."""
         df = self.predict()
-        self.kelly_ratio(df)
-        returns = self._returns
+        returns = self.find_returns(df)
         if returns is None:
             raise ValueError("returns is null")
         return returns
@@ -510,7 +543,8 @@ class Strategy:
         """Find the next predictions for betting."""
         dt_column = DELIMITER.join([GAME_DT_COLUMN])
         df = self.predict()
-        kelly_ratio = self.kelly_ratio(df)
+        self.find_returns(df)
+        kelly_ratio = self._study.best_trial.suggest_float(_KELLY_KEY, 0.0, 1.0)
         start_dt = datetime.datetime.now(datetime.timezone.utc)
         end_dt = start_dt + datetime.timedelta(days=3.0)
         df = df[df[dt_column] > start_dt]
