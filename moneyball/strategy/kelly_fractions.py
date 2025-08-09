@@ -47,6 +47,8 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int, eta: float) -> pd.Data
     odds = df[odds_cols].to_numpy()
     points = df[points_cols].to_numpy()
     wins_idx = points.argmax(axis=1)
+    probs_idx = probs.argmax(axis=1)
+    print(f"Accuracy: {float((wins_idx == probs_idx).sum()) / float(len(df))}")
     for i in range(len(points_cols)):
         p = probs[np.arange(len(df)), i]
         p = (p**eta) / ((p**eta) + ((1 - p) ** eta))
