@@ -37,10 +37,10 @@ def probability_columns(df: pd.DataFrame) -> list[str]:
 
 def augment_kelly_fractions(df: pd.DataFrame, teams: int, eta: float) -> pd.DataFrame:
     """Augment the dataframe with kelly fractions."""
-    points_cols = [team_points_column(x) for x in range(teams)]
-    prob_cols = probability_columns(df)
+    points_cols = sorted([team_points_column(x) for x in range(teams)])
+    prob_cols = sorted(probability_columns(df))
 
-    odds_cols = [f"teams/{x}_odds" for x in range(teams)]
+    odds_cols = sorted([f"teams/{x}_odds" for x in range(teams)])
     df = df[df[GAME_DT_COLUMN].dt.year >= datetime.datetime.now().year - 1]
 
     probs = df[prob_cols].to_numpy()
