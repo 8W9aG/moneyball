@@ -565,7 +565,6 @@ class Strategy:
         self,
     ) -> tuple[
         pd.DataFrame,
-        dict[str, tuple[dict[str, float], list[dict[str, float]]]],
         float,
         float,
     ]:
@@ -581,7 +580,6 @@ class Strategy:
         df = df[df[dt_column] <= end_dt]
         return (
             df,
-            self._wt.feature_importances(df=df, latest_date_only=True),
             kelly_ratio,
             alpha,
         )

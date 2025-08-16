@@ -133,16 +133,8 @@ class Portfolio:
         """Find the strategies next bet information."""
         bets: NextBets = {"bets": [], "feature_importances": {}}
         for strategy in self._strategies:
-            next_df, feature_importances, kelly_ratio, eta = strategy.next()
+            next_df, kelly_ratio, eta = strategy.next()
             prob_cols = probability_columns(next_df)
-            high_feature_importance_dt = sorted(
-                list(feature_importances.keys()),
-                key=datetime.datetime.fromisoformat,
-            )[-1]
-            used_feature_names = feature_importances[high_feature_importance_dt][0]
-            bets["feature_importances"][strategy.name] = {
-                high_feature_importance_dt: used_feature_names
-            }
             next_df.to_parquet(
                 os.path.join(self._name, f"next_df_{strategy.name}.parquet")
             )
@@ -160,7 +152,7 @@ class Portfolio:
                         next_df[identifier_column] = None
                     if name_column not in next_df.columns.values.tolist():
                         next_df[name_column] = None
-            for row_idx, row in enumerate(next_df.itertuples(name=None)):
+            for _, row in enumerate(next_df.itertuples(name=None)):
                 row_dict = {
                     x: row[count + 1]
                     for count, x in enumerate(next_df.columns.values.tolist())
@@ -230,12 +222,8 @@ class Portfolio:
                             for x in range(team_count)
                         ],
                         "dt": row_dict[GAME_DT_COLUMN].isoformat(),
-                        "row": {
-                            k: v for k, v in row_dict.items() if k in used_feature_names
-                        },
-                        "importances": feature_importances[high_feature_importance_dt][
-                            1
-                        ][row_idx],
+                        "row": {},
+                        "importances": {},
                     }
                 )
         return bets
