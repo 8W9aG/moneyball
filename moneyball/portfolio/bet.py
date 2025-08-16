@@ -16,5 +16,7 @@ Bet = TypedDict(
         "dt": str,
         "row": dict[str, Any],
         "importances": dict[str, float],
+        "alpha": float,
+        "calculated_position_size": float,
     },
 )

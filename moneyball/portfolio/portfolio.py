@@ -133,7 +133,7 @@ class Portfolio:
         """Find the strategies next bet information."""
         bets: NextBets = {"bets": [], "feature_importances": {}}
         for strategy in self._strategies:
-            next_df, feature_importances, kelly_ratio = strategy.next()
+            next_df, feature_importances, kelly_ratio, eta = strategy.next()
             prob_cols = probability_columns(next_df)
             high_feature_importance_dt = sorted(
                 list(feature_importances.keys()),
@@ -182,6 +182,12 @@ class Portfolio:
                 q = 1.0 - best_prob
                 kelly_fraction = (b * best_prob - q) / b
                 kelly_fraction = np.clip(kelly_fraction, 0, 1)
+                best_prob = (best_prob**eta) / (
+                    (best_prob**eta) + ((1 - best_prob) ** eta)
+                )
+                q = 1.0 - best_prob
+                calculated_kelly_fraction = (b * best_prob - q) / b
+                calculated_kelly_fraction = np.clip(kelly_fraction, 0, 1)
 
                 bets["bets"].append(
                     {
@@ -190,6 +196,9 @@ class Portfolio:
                         "kelly": kelly_ratio,
                         "weight": self._weights[strategy.name],
                         "amount": kelly_fraction,
+                        "alpha": eta,
+                        "calculated_position_size": calculated_kelly_fraction
+                        * kelly_fraction,
                         "teams": [
                             {
                                 "name": row_dict[team_name_column(x)],

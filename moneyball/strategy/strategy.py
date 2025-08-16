@@ -362,6 +362,7 @@ _VALIDATION_SIZE = datetime.timedelta(days=365)
 _TEST_SIZE = datetime.timedelta(days=365)
 _SAMPLER_FILENAME = "sampler.pkl"
 _KELLY_KEY = "kelly"
+_ALPHA_KEY = "alpha"
 
 
 class Strategy:
@@ -456,7 +457,7 @@ class Strategy:
         def trial_returns(
             trial: optuna.Trial | optuna.trial.FrozenTrial, df: pd.DataFrame
         ) -> pd.Series:
-            alpha = trial.suggest_float("alpha", 0.0, 2.0)
+            alpha = trial.suggest_float(_ALPHA_KEY, 0.0, 2.0)
             kelly_threshold = trial.suggest_float(_KELLY_KEY, 0.0, 1.0)
 
             df = augment_kelly_fractions(df, len(points_cols), alpha)
@@ -563,13 +564,17 @@ class Strategy:
     def next(
         self,
     ) -> tuple[
-        pd.DataFrame, dict[str, tuple[dict[str, float], list[dict[str, float]]]], float
+        pd.DataFrame,
+        dict[str, tuple[dict[str, float], list[dict[str, float]]]],
+        float,
+        float,
     ]:
         """Find the next predictions for betting."""
         dt_column = DELIMITER.join([GAME_DT_COLUMN])
         df = self.predict()
         self.find_returns(df)
         kelly_ratio = self._study.best_trial.suggest_float(_KELLY_KEY, 0.0, 1.0)
+        alpha = self._study.best_trial.suggest_float(_ALPHA_KEY, 0.0, 2.0)
         start_dt = datetime.datetime.now(datetime.timezone.utc)
         end_dt = start_dt + datetime.timedelta(days=3.0)
         df = df[df[dt_column] > start_dt]
@@ -578,6 +583,7 @@ class Strategy:
             df,
             self._wt.feature_importances(df=df, latest_date_only=True),
             kelly_ratio,
+            alpha,
         )
 
     def _process(self) -> pd.DataFrame:
