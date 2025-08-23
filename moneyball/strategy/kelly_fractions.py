@@ -2,6 +2,7 @@
 
 # pylint: disable=too-many-locals
 import datetime
+import warnings
 
 import empyrical  # type: ignore
 import numpy as np
@@ -93,6 +94,7 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int, eta: float) -> pd.Data
 
 def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Series:
     """Calculate the returns with a kelly ratio."""
+    warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
     i = 0
     while True:
         adjusted_fraction_col = ADJUSTED_FRACTION_COL_PREFIX + str(i)
@@ -124,6 +126,11 @@ def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Ser
 
 def calculate_value(ret: pd.Series) -> float:
     """Calculates the value of the returns."""
+    print(f"Sharpe: {empyrical.sharpe_ratio(ret, annualization=365)}")
+    print(f"Calmar: {empyrical.calmar_ratio(ret, annualization=365)}")
+    print(f"Max Drawdown: {empyrical.max_drawdown(ret)}")
+    print(f"Sortino: {empyrical.sortino_ratio(ret, annualization=365)}")
+    print(f"Return: {empyrical.annual_return(ret, annualization=365)}")
     if abs(empyrical.max_drawdown(ret)) >= 1.0:
         return 0.0
     return empyrical.calmar_ratio(ret, annualization=365)  # type: ignore
