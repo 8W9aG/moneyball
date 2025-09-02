@@ -173,13 +173,11 @@ class Portfolio:
                 b = o - 1.0
                 q = 1.0 - best_prob
                 kelly_fraction = (b * best_prob - q) / b
-                kelly_fraction = np.clip(kelly_fraction, 0, 1)
                 best_prob = (best_prob**eta) / (
                     (best_prob**eta) + ((1 - best_prob) ** eta)
                 )
                 q = 1.0 - best_prob
                 calculated_kelly_fraction = (b * best_prob - q) / b
-                calculated_kelly_fraction = np.clip(kelly_fraction, 0, 1)
 
                 bets["bets"].append(
                     {
@@ -189,8 +187,9 @@ class Portfolio:
                         "weight": self._weights[strategy.name],
                         "amount": kelly_fraction,
                         "alpha": eta,
-                        "calculated_position_size": calculated_kelly_fraction
-                        * kelly_fraction,
+                        "calculated_position_size": np.clip(
+                            calculated_kelly_fraction * kelly_ratio, 0, 1
+                        ),
                         "teams": [
                             {
                                 "name": row_dict[team_name_column(x)],
