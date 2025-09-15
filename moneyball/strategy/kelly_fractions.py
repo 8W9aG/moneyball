@@ -2,6 +2,7 @@
 
 # pylint: disable=too-many-locals
 import datetime
+import math
 import warnings
 
 import empyrical  # type: ignore
@@ -133,4 +134,7 @@ def calculate_value(ret: pd.Series) -> float:
     print(f"Return: {empyrical.annual_return(ret, annualization=365)}")
     if abs(empyrical.max_drawdown(ret)) >= 1.0:
         return 0.0
-    return empyrical.calmar_ratio(ret, annualization=365)  # type: ignore
+    calmar = float(empyrical.calmar_ratio(ret, annualization=365))  # type: ignore
+    if math.isnan(calmar):
+        calmar = float(empyrical.annual_return(ret, annualization=365))  # type: ignore
+    return calmar
