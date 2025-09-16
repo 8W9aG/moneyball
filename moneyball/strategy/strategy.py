@@ -925,7 +925,10 @@ class Strategy:
     _returns: pd.Series | None
     _place: int
 
-    def __init__(self, name: str, place: int | None = None) -> None:
+    def __init__(
+        self, name: str, place: int | None = None, use_multiprocessing: bool = True
+    ) -> None:
+        self._use_multiprocessing = use_multiprocessing
         self._df = None
         self._name = name
         os.makedirs(name, exist_ok=True)
@@ -2864,6 +2867,7 @@ class Strategy:
             use_news_features=True,
             datetime_columns=datetime_columns,
             use_players_feature=True,
+            use_multiprocessing=self._use_multiprocessing,
         )
         df_processed.to_parquet(df_cache_path)
         return df_processed

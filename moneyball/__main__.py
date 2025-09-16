@@ -57,6 +57,13 @@ def main() -> None:
         type=int,
     )
     parser.add_argument(
+        "--disable_multiprocessing",
+        help="Whether to disable multiprocessing on sports features.",
+        required=False,
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
         "name",
         help="The name of the strategy/portfolio.",
     )
@@ -84,7 +91,7 @@ def main() -> None:
 
     match args.function:
         case Function.TRAIN:
-            strategy = Strategy(args.name, args.place)
+            strategy = Strategy(args.name, args.place, not args.disable_multiprocessing)
             if not args.cached:
                 parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
                 parquet_bytes.seek(0)
