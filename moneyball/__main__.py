@@ -1,12 +1,13 @@
 """The CLI for executing the signal extraction."""
 
+# pylint: disable=too-many-statements
 import argparse
 import io
 import json
 import logging
 import sys
-import warnings
 import time
+import warnings
 
 import pandas as pd
 from sportsball.loglevel import LogLevel  # type: ignore
@@ -94,6 +95,7 @@ def main() -> None:
             raise ValueError(f"Unrecognised loglevel: {args.loglevel}")
 
     logging.info("--- moneyball %s ---", __VERSION__)
+    pd.options.io.parquet.engine = "pyarrow"
 
     match args.function:
         case Function.TRAIN:
@@ -101,7 +103,9 @@ def main() -> None:
             if not args.cached:
                 start_time = time.perf_counter()
                 if args.input_file is not None:
-                    df = pd.read_parquet(args.input_file)
+                    df = pd.read_parquet(
+                        args.input_file, engine="pyarrow", memory_map=True
+                    )
                     strategy.df = df
                 else:
                     parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
