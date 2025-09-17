@@ -6,6 +6,7 @@ import json
 import logging
 import sys
 import warnings
+import time
 
 import pandas as pd
 from sportsball.loglevel import LogLevel  # type: ignore
@@ -64,6 +65,11 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--input_file",
+        help="The input file to read.",
+        required=False,
+    )
+    parser.add_argument(
         "name",
         help="The name of the strategy/portfolio.",
     )
@@ -93,10 +99,17 @@ def main() -> None:
         case Function.TRAIN:
             strategy = Strategy(args.name, args.place, not args.disable_multiprocessing)
             if not args.cached:
-                parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
-                parquet_bytes.seek(0)
-                df = pd.read_parquet(parquet_bytes)
-                strategy.df = df
+                start_time = time.perf_counter()
+                if args.input_file is not None:
+                    df = pd.read_parquet(args.input_file)
+                    strategy.df = df
+                else:
+                    parquet_bytes = io.BytesIO(sys.stdin.buffer.read())
+                    parquet_bytes.seek(0)
+                    df = pd.read_parquet(parquet_bytes)
+                    strategy.df = df
+                end_time = time.perf_counter()
+                logging.info("Loaded dataframe in %f", end_time - start_time)
             strategy.fit()
         case Function.PORTFOLIO:
             if args.name is None:
