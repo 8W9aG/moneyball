@@ -101,6 +101,7 @@ def main() -> None:
         case Function.TRAIN:
             strategy = Strategy(args.name, args.place, not args.disable_multiprocessing)
             if not args.cached:
+                logging.info("Begin loading dataframe")
                 start_time = time.perf_counter()
                 if args.input_file is not None:
                     df = pd.read_parquet(
