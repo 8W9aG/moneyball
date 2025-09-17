@@ -991,8 +991,6 @@ class Strategy:
     def df(self, df: pd.DataFrame) -> None:
         """Set the dataframe."""
         self._df = df.sort_values(by=DT_COLUMN, ascending=True)
-        df.to_parquet(os.path.join(self._name, _DF_FILENAME), compression="gzip")
-        self._df = pd.read_parquet(os.path.join(self._name, _DF_FILENAME))
 
     @property
     def name(self) -> str:
