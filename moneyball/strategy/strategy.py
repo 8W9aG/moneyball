@@ -5,6 +5,7 @@ import datetime
 import functools
 import hashlib
 import json
+import logging
 import os
 import pickle
 
@@ -1138,6 +1139,7 @@ class Strategy:
         )
 
     def _process(self) -> pd.DataFrame:
+        logging.info("Begin dataframe processing function")
         df = self.df
         if df is None:
             raise ValueError("df is null")
@@ -2853,6 +2855,7 @@ class Strategy:
                     for x in range(coach_count)
                 ]
             )
+        logging.info("Begin processing dataframe")
         df_processed = process(
             df,
             GAME_DT_COLUMN,
