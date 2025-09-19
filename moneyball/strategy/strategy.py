@@ -937,7 +937,7 @@ class Strategy:
         # Load dataframe previously used.
         df_file = os.path.join(name, _DF_FILENAME)
         if os.path.exists(df_file):
-            self._df = pd.read_parquet(df_file)
+            self._df = pd.read_parquet(df_file, engine="pyarrow", memory_map=True)
 
         self._wt = wt.create(
             self._name,
@@ -1147,7 +1147,7 @@ class Strategy:
         df_hash = hashlib.sha256(df.to_csv().encode()).hexdigest()
         df_cache_path = os.path.join(self._name, f"processed_{df_hash}.parquet")
         if os.path.exists(df_cache_path):
-            return pd.read_parquet(df_cache_path)
+            return pd.read_parquet(df_cache_path, engine="pyarrow", memory_map=True)
 
         team_count = find_team_count(df)
 
