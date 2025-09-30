@@ -986,6 +986,7 @@ class Strategy:
         df = self._df
         if df is None:
             return None
+        df.to_parquet(os.path.join(self._name, _DF_FILENAME))
         return df.sort_values(by=DT_COLUMN, ascending=True)
 
     @df.setter
