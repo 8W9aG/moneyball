@@ -138,6 +138,7 @@ class Portfolio:
             next_df.to_parquet(
                 os.path.join(self._name, f"next_df_{strategy.name}.parquet")
             )
+            next_df_cols = set(next_df.columns.values.tolist())
             team_count = find_team_count(next_df)
             player_count = find_player_count(next_df, team_count)
             for i in range(team_count):
@@ -148,15 +149,12 @@ class Portfolio:
                     name_column = DELIMITER.join(
                         [player_column_prefix(i, ii), PLAYER_IDENTIFIER_COLUMN]
                     )
-                    if identifier_column not in next_df.columns.values.tolist():
+                    if identifier_column not in next_df_cols:
                         next_df[identifier_column] = None
-                    if name_column not in next_df.columns.values.tolist():
+                    if name_column not in next_df_cols:
                         next_df[name_column] = None
             for _, row in enumerate(next_df.itertuples(name=None)):
-                row_dict = {
-                    x: row[count + 1]
-                    for count, x in enumerate(next_df.columns.values.tolist())
-                }
+                row_dict = {x: row[count + 1] for count, x in enumerate(next_df_cols)}
                 for k, v in row_dict.items():
                     if v is not None:
                         continue
