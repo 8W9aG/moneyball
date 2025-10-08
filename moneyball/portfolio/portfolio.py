@@ -138,7 +138,7 @@ class Portfolio:
             next_df.to_parquet(
                 os.path.join(self._name, f"next_df_{strategy.name}.parquet")
             )
-            next_df_cols = set(next_df.columns.values.tolist())
+            next_df_cols = next_df.columns.values.tolist()
             team_count = find_team_count(next_df)
             player_count = find_player_count(next_df, team_count)
             for i in range(team_count):
