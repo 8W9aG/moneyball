@@ -949,7 +949,7 @@ class Strategy:
             test_size=_TEST_SIZE,
             allowed_models={"catboost"},
             max_false_positive_reduction_steps=1,
-            correlation_chunk_size=10000,
+            correlation_chunk_size=20000,
             insert_null=True,
         )
 
