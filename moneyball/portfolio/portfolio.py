@@ -170,7 +170,7 @@ class Portfolio:
                 o = row_dict[f"teams/{best_idx}_odds"]
                 b = o - 1.0
                 q = 1.0 - best_prob
-                kelly_fraction = (b * best_prob - q) / b
+                kelly_fraction = (b * best_prob - q) / b if b != 0.0 else 0.0
                 best_prob = (best_prob**eta) / (
                     (best_prob**eta) + ((1 - best_prob) ** eta)
                 )

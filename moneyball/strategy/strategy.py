@@ -1106,6 +1106,7 @@ class Strategy:
         x_df = self._wt.transform(x_df)
         for points_col in df.attrs[str(FieldType.POINTS)]:
             x_df[points_col] = df[points_col]
+        x_df[GAME_DT_COLUMN] = df[GAME_DT_COLUMN]
         return x_df
 
     def returns(self) -> pd.Series:
