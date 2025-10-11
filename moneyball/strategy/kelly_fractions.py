@@ -20,6 +20,9 @@ BET_WON_COL_PREFIX = "bet_won_"
 BET_ODDS_COL_PREFIX = "bet_odds_"
 ADJUSTED_FRACTION_COL_PREFIX = "adjusted_fraction_"
 
+# Internal column to mark matches that ended in a draw (max points tie)
+_MATCH_DRAW_COL = "__match_is_draw__"
+
 
 def probability_columns(df: pd.DataFrame) -> list[str]:
     """Probability columns generated."""
@@ -48,6 +51,12 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int, eta: float) -> pd.Data
     probs = df[prob_cols].to_numpy()
     odds = df[odds_cols].to_numpy()
     points = df[points_cols].to_numpy()
+
+    # --- Draw mask: row is a draw if the top points value appears ≥ 2 times ---
+    row_max = points.max(axis=1, keepdims=True)
+    draw_mask = (np.isclose(points, row_max)).sum(axis=1) > 1
+    df[_MATCH_DRAW_COL] = draw_mask
+
     wins_idx = points.argmax(axis=1)
     probs_idx = probs.argmax(axis=1)
     print(f"Accuracy: {float((wins_idx == probs_idx).sum()) / float(len(df))}")
@@ -94,24 +103,55 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int, eta: float) -> pd.Data
 
 
 def calculate_returns(kelly_ratio: float, df: pd.DataFrame, name: str) -> pd.Series:
-    """Calculate the returns with a kelly ratio."""
+    """Calculate the returns with a kelly ratio.
+    Draws are treated as push (stake returned)."""
     warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+
+    # Ensure draw mask exists (robust if df didn't come from augment_kelly_fractions)
+    if _MATCH_DRAW_COL not in df.columns:
+        teams = find_team_count(df)
+        points_cols = sorted([team_points_column(x) for x in range(teams)])
+        if all(col in df.columns for col in points_cols):
+            pts = df[points_cols].to_numpy()
+            row_max = pts.max(axis=1, keepdims=True)
+            df[_MATCH_DRAW_COL] = (np.isclose(pts, row_max)).sum(axis=1) > 1
+        else:
+            # Fallback: assume no draws if we can't compute points
+            df[_MATCH_DRAW_COL] = False
+
     i = 0
     while True:
         adjusted_fraction_col = ADJUSTED_FRACTION_COL_PREFIX + str(i)
         kelly_fraction_ratio_col = KELLY_FRACTION_RATIO_COL_PREFIX + str(i)
         if adjusted_fraction_col not in df.columns.values.tolist():
             break
+
         df[kelly_fraction_ratio_col] = df[adjusted_fraction_col] * kelly_ratio
-        df[RETURN_MULTIPLIER_COL_PREFIX + str(i)] = (
-            np.where(
-                df[BET_WON_COL_PREFIX + str(i)],
-                1
-                + df[kelly_fraction_ratio_col] * (df[BET_ODDS_COL_PREFIX + str(i)] - 1),
-                1 - df[kelly_fraction_ratio_col],
+
+        win_col = BET_WON_COL_PREFIX + str(i)
+        odds_col = BET_ODDS_COL_PREFIX + str(i)
+        ret_mult_col = RETURN_MULTIPLIER_COL_PREFIX + str(i)
+
+        # Win → 1 + f*(odds-1)
+        # Draw (push) → 1
+        # Loss → 1 - f
+        df[ret_mult_col] = (
+            np.select(
+                [
+                    df[win_col].to_numpy(),
+                    df[_MATCH_DRAW_COL].to_numpy(),
+                ],
+                [
+                    1
+                    + df[kelly_fraction_ratio_col].to_numpy()
+                    * (df[odds_col].to_numpy() - 1),
+                    1,
+                ],
+                default=(1 - df[kelly_fraction_ratio_col].to_numpy()),
             )
             - 1.0
         )
+
         i += 1
 
     # Convert net return to multiplier
