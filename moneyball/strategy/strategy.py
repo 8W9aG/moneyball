@@ -1108,6 +1108,7 @@ class Strategy:
         for points_col in df.attrs[str(FieldType.POINTS)]:
             x_df[points_col] = df[points_col]
         x_df[GAME_DT_COLUMN] = df[GAME_DT_COLUMN]
+        x_df.to_parquet("predict.parquet")
         return x_df
 
     def returns(self) -> pd.Series:
