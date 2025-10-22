@@ -61,13 +61,15 @@ def augment_kelly_fractions(df: pd.DataFrame, teams: int, eta: float) -> pd.Data
     probs_idx = probs.argmax(axis=1)
     print(f"Accuracy: {float((wins_idx == probs_idx).sum()) / float(len(df))}")
     for i in range(len(points_cols)):
-        p = probs[np.arange(len(df)), i]
-        p = (p**eta) / ((p**eta) + ((1 - p) ** eta))
-        o = odds[np.arange(len(df)), i]
+        orig_p = probs[np.arange(len(df)), i]
+        p = (orig_p**eta) / ((orig_p**eta) + ((1 - orig_p) ** eta))
+        o = np.clip(odds[np.arange(len(df)), i], 1.0, None)
         b = o - 1.0
         q = 1.0 - p
         kelly_fraction = (b * p - q) / b
         kelly_fraction = np.clip(kelly_fraction, 0, 1)
+        if len(points_cols) == 2:
+            kelly_fraction[orig_p < 0.5] = 0.0
         df[KELLY_FRACTION_COL_PREFIX + str(i)] = kelly_fraction
         df[BET_WON_COL_PREFIX + str(i)] = i == wins_idx
         df[BET_ODDS_COL_PREFIX + str(i)] = o
