@@ -1017,6 +1017,7 @@ class Strategy:
             kelly_threshold = trial.suggest_float(_KELLY_KEY, 0.0, 1.0)
 
             df = augment_kelly_fractions(df, len(points_cols), alpha)
+            df.to_parquet("kelly_df.parquet")
             returns = calculate_returns(
                 kelly_threshold,
                 df,
