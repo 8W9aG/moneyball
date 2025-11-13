@@ -1000,7 +1000,7 @@ class Strategy:
         """Fetch the name of the strategy."""
         return self._name
 
-    def find_returns(self, df: pd.DataFrame) -> pd.Series:
+    def find_returns(self, df: pd.DataFrame, run_study: bool = True) -> pd.Series:
         """Find the best kelly ratio for this strategy."""
         main_df = self.df
         if main_df is None:
@@ -1032,7 +1032,7 @@ class Strategy:
             value = calculate_value(returns)
             return value
 
-        if len(self._study.trials) < 100:
+        if run_study and len(self._study.trials) < 100:
             self._study.optimize(
                 functools.partial(
                     run_trial,
@@ -1130,7 +1130,7 @@ class Strategy:
         """Find the next predictions for betting."""
         dt_column = DELIMITER.join([GAME_DT_COLUMN])
         df = self.predict()
-        self.find_returns(df)
+        self.find_returns(df, run_study=False)
         kelly_ratio = self._study.best_trial.suggest_float(_KELLY_KEY, 0.0, 1.0)
         alpha = self._study.best_trial.suggest_float(_ALPHA_KEY, 0.0, 2.0)
         start_dt = datetime.datetime.now(datetime.timezone.utc)
