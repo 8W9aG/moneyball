@@ -1032,7 +1032,7 @@ class Strategy:
             value = calculate_value(returns)
             return value
 
-        if not self._study.trials:
+        if len(self._study.trials) < 100:
             self._study.optimize(
                 functools.partial(
                     run_trial,
